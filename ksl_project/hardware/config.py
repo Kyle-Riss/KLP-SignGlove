@@ -1,0 +1,2 @@
+# SENSOR_CONFIG 스텁
+SENSOR_CONFIG = {}
