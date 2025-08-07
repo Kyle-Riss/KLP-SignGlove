@@ -290,20 +290,18 @@ $ python test_realtime.py
 - [x] **딥러닝 모델**: CNN+LSTM+Attention (91.67% 정확도)
 - [x] **실시간 추론**: 562 FPS 멀티스레드 파이프라인
 - [x] **하드웨어 연동**: UART/WiFi/시뮬레이션 모드
-- [x] **TTS 엔진**: 한국어 음성 합성 (macOS 지원)
 - [x] **전체 통합 테스트**: 모든 컴포넌트 검증 완료
 - [x] **다중 모델 지원**: 딥러닝/XGBoost/RF/Rule-based
 
 ### 🚧 다음 단계 (v2.0)
 - [ ] **확장된 수어**: 34개 클래스 (자음+모음+숫자) 학습 데이터 수집
+- [ ] **TTS 엔진**: 한국어 음성 합성 (macOS 지원)
 - [ ] **모바일 앱**: React Native/Flutter 기반 모바일 인터페이스
 - [ ] **웹 서비스**: 브라우저 기반 실시간 인식 서비스
 - [ ] **엣지 최적화**: TensorRT/CoreML을 통한 모바일 최적화
 - [ ] **클라우드 배포**: Docker/Kubernetes 기반 확장 가능한 서비스
 
 ## 🤝 기여하기
-
-우리는 한국수어 접근성 향상을 위한 오픈소스 기여를 환영합니다! 🙌
 
 1. 저장소 포크: `Fork` 버튼 클릭
 2. 기능 브랜치 생성: `git checkout -b feature/amazing-feature`
@@ -322,7 +320,7 @@ $ python test_realtime.py
 
 이 프로젝트는 [MIT 라이선스](LICENSE) 하에 배포됩니다.
 
-## 🔗 링크 & 연락처
+## 🔗 링크
 
 - **GitHub**: [KLP-SignGlove 저장소](https://github.com/Kyle-Riss/KLP-SignGlove)
 - **Issues**: 버그 리포트 및 기능 요청
