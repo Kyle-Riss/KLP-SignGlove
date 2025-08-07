@@ -115,14 +115,11 @@ dl_features = multimodal.prepare_for_deep_learning(window_data)  # 센서별 텐
 
 이 프로젝트는 MIT 라이센스 하에 배포됩니다.
 
-## 📞 연락처
+## 📞 연계 프로세스
 
 - 프로젝트 링크: [https://github.com/yourusername/SignGlove_HW](https://github.com/yourusername/SignGlove_HW)
 
 ---
-
-⭐ 이 프로젝트가 도움이 되었다면 스타를 눌러주세요!
-센서 기반 수화 통역 장갑 제작기
 
 #생각 할 것
 - 손을 어느 위치에서 시작해도 상관없는가??
