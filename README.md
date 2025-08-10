@@ -334,7 +334,3 @@ $ python test_realtime.py
 ![GitHub last commit](https://img.shields.io/github/last-commit/Kyle-Riss/KLP-SignGlove)
 
 ---
-
-**🎯 미션**: 한국수어 접근성 향상을 통한 포용적 소통 문화 구현
-
-**© 2025 SignGlove_HW Team. 모든 사람이 자유롭게 소통할 수 있는 세상을 꿈꿉니다. 🤟**
