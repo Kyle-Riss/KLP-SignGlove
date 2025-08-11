@@ -2,7 +2,7 @@
 
 **한국수어(KSL) 인식을 위한 완전한 End-to-End 딥러닝 시스템**
 
-SignGlove 하드웨어와 연동하여 손가락 움직임과 손목 방향을 실시간으로 인식하고, 딥러닝/머신러닝을 통해 한국수어를 분류하는 완전한 솔루션입니다. 🚀
+SignGlove 하드웨어와 연동하여 손가락 움직임과 손목 방향을 실시간으로 인식하고, 딥러닝/머신러닝을 통해 한국수어를 분류하는 완전한 솔루션입니다.
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
