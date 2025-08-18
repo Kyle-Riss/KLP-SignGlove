@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from data_collection.label_mapping import KSLLabelMapper
+from training.label_mapping import KSLLabelMapper
 
 class KSLCsvDataset(Dataset):
     def __init__(self, csv_dir, window_size=20, stride=10, transform=None, use_labeling=True):
