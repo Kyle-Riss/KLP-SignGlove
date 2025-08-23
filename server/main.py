@@ -219,14 +219,8 @@ async def predict_gesture(request: SensorDataRequest):
         # 센서 데이터를 SensorReading으로 변환
         sensor_reading = SensorReading(
             timestamp=request.timestamp,
-            pitch=request.pitch,
-            roll=request.roll,
-            yaw=request.yaw,
-            flex1=request.flex1,
-            flex2=request.flex2,
-            flex3=request.flex3,
-            flex4=request.flex4,
-            flex5=request.flex5,
+            flex_data=[request.flex1, request.flex2, request.flex3, request.flex4, request.flex5],
+            orientation_data=[request.pitch, request.roll, request.yaw],
             source=request.source
         )
         
@@ -283,14 +277,8 @@ async def predict_gesture_batch(request: BatchSensorDataRequest):
             # 센서 데이터를 SensorReading으로 변환
             sensor_reading = SensorReading(
                 timestamp=sensor_request.timestamp,
-                pitch=sensor_request.pitch,
-                roll=sensor_request.roll,
-                yaw=sensor_request.yaw,
-                flex1=sensor_request.flex1,
-                flex2=sensor_request.flex2,
-                flex3=sensor_request.flex3,
-                flex4=sensor_request.flex4,
-                flex5=sensor_request.flex5,
+                flex_data=[sensor_request.flex1, sensor_request.flex2, sensor_request.flex3, sensor_request.flex4, sensor_request.flex5],
+                orientation_data=[sensor_request.pitch, sensor_request.roll, sensor_request.yaw],
                 source=sensor_request.source
             )
             
@@ -341,14 +329,8 @@ async def predict_stable_gesture(request: SensorDataRequest):
         # 센서 데이터를 SensorReading으로 변환
         sensor_reading = SensorReading(
             timestamp=request.timestamp,
-            pitch=request.pitch,
-            roll=request.roll,
-            yaw=request.yaw,
-            flex1=request.flex1,
-            flex2=request.flex2,
-            flex3=request.flex3,
-            flex4=request.flex4,
-            flex5=request.flex5,
+            flex_data=[request.flex1, request.flex2, request.flex3, request.flex4, request.flex5],
+            orientation_data=[request.pitch, request.roll, request.yaw],
             source=request.source
         )
         
