@@ -27,7 +27,7 @@ class DeepLearningTrainer:
                 'model_type': 'DeepLearningPipeline',
                 'input_features': 8,
                 'sequence_length': 20,
-                'num_classes': 5,
+                'num_classes': 24,
                 'hidden_dim': 128,
                 'num_layers': 2,
                 'dropout': 0.3,
@@ -101,7 +101,11 @@ class DeepLearningTrainer:
         )
         
         # 데이터셋 정보 출력
-        dataset.print_dataset_info()
+        print(f"📊 데이터셋 정보:")
+        print(f"  총 샘플 수: {len(dataset)}")
+        print(f"  윈도우 크기: {self.config['data']['window_size']}")
+        print(f"  스트라이드: {self.config['data']['stride']}")
+        print(f"  클래스 수: {dataset.get_num_classes()}")
         
         # 데이터 분할
         total_size = len(dataset)
