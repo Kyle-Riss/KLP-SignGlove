@@ -1,0 +1,22 @@
+{
+  "fp32_baseline": {
+    "accuracy": 100.0,
+    "model_size_mb": 1.8057098388671875,
+    "inference_time_ms": 5.843379280783913,
+    "fps": 171.13385114132896
+  },
+  "weight_only_quantization": {
+    "accuracy": 100.0,
+    "model_size_mb": 0.45664310455322266,
+    "inference_time_ms": 6.427717208862305,
+    "compression_ratio": 3.9793202109330132
+  },
+  "pruning": {
+    "accuracy": 0.0,
+    "model_size_mb": 0.9492645263671875,
+    "inference_time_ms": 3.266356208107688,
+    "fps": 306.15154511250756
+  },
+  "knowledge_distillation": {},
+  "onnx_optimization": {}
+}

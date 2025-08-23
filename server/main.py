@@ -28,6 +28,7 @@ from inference.unified_inference import (
     create_unified_inference_pipeline
 )
 from training.label_mapping import KSLLabelMapper
+from word_recognition import WordRecognitionSystem
 
 # Pydantic 모델 정의
 class SensorDataRequest(BaseModel):
@@ -97,11 +98,12 @@ app.add_middleware(
 inference_pipeline: Optional[UnifiedInferencePipeline] = None
 label_mapper: Optional[KSLLabelMapper] = None
 model_info: Dict[str, Any] = {}
+word_recognition_system: Optional[WordRecognitionSystem] = None
 
 @app.on_event("startup")
 async def startup_event():
     """서버 시작 시 초기화"""
-    global inference_pipeline, label_mapper, model_info
+    global inference_pipeline, label_mapper, model_info, word_recognition_system
     
     print("🚀 SignGlove 추론 API 서버 시작 중...")
     
@@ -130,10 +132,14 @@ async def startup_event():
             "window_size": 20
         }
         
+        # 단어 인식 시스템 초기화
+        word_recognition_system = WordRecognitionSystem()
+        
         print("✅ API 서버 초기화 완료")
         print(f"📊 모델 정보: {model_info['model_name']} v{model_info['model_version']}")
         print(f"🎯 정확도: {model_info['accuracy']:.2%}")
         print(f"📈 지원 클래스: {model_info['num_classes']}개")
+        print(f"📝 단어 인식 시스템: 활성화")
         
     except Exception as e:
         print(f"❌ 서버 초기화 실패: {e}")
@@ -407,6 +413,110 @@ async def get_supported_classes():
         "consonants": label_mapper.get_consonants(),
         "vowels": label_mapper.get_vowels(),
         "all_classes": list(label_mapper.class_to_id.keys())
+    }
+
+@app.post("/word/recognize")
+async def recognize_word(request: SensorDataRequest):
+    """단어 인식"""
+    global word_recognition_system, inference_pipeline
+    
+    if word_recognition_system is None:
+        raise HTTPException(status_code=503, detail="단어 인식 시스템이 초기화되지 않았습니다")
+    
+    if inference_pipeline is None:
+        raise HTTPException(status_code=503, detail="추론 파이프라인이 초기화되지 않았습니다")
+    
+    try:
+        start_time = time.time()
+        
+        # 센서 데이터를 SensorReading으로 변환
+        sensor_reading = SensorReading(
+            timestamp=request.timestamp,
+            flex_data=[request.flex1, request.flex2, request.flex3, request.flex4, request.flex5],
+            orientation_data=[request.pitch, request.roll, request.yaw],
+            source=request.source
+        )
+        
+        # 센서 데이터 추가
+        success = inference_pipeline.add_sensor_data(sensor_reading)
+        
+        if not success:
+            raise HTTPException(status_code=400, detail="센서 데이터 추가 실패")
+        
+        # 예측 수행
+        result = inference_pipeline.predict_single()
+        
+        if result is None:
+            # 충분한 데이터가 없으면 현재 상태만 반환
+            status = word_recognition_system.get_current_status()
+            return {
+                "success": True,
+                "letter_result": None,
+                "word_result": None,
+                "current_status": status,
+                "timestamp": time.time()
+            }
+        
+        # 글자 인식 결과
+        letter = result.predicted_class
+        confidence = result.confidence
+        
+        # 단어 인식 시스템에 글자 추가
+        word_result = word_recognition_system.add_letter(letter, confidence, time.time())
+        
+        # 현재 상태
+        status = word_recognition_system.get_current_status()
+        
+        processing_time = (time.time() - start_time) * 1000
+        
+        return {
+            "success": True,
+            "letter_result": {
+                "letter": letter,
+                "confidence": confidence,
+                "timestamp": time.time()
+            },
+            "word_result": {
+                "word": word_result.word if word_result else None,
+                "confidence": word_result.confidence if word_result else None,
+                "timestamp": word_result.timestamp if word_result else None
+            },
+            "current_status": status,
+            "processing_time_ms": processing_time,
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"단어 인식 중 오류 발생: {str(e)}")
+
+@app.get("/word/status")
+async def get_word_status():
+    """단어 인식 상태 조회"""
+    global word_recognition_system
+    
+    if word_recognition_system is None:
+        raise HTTPException(status_code=503, detail="단어 인식 시스템이 초기화되지 않았습니다")
+    
+    status = word_recognition_system.get_current_status()
+    
+    return {
+        "status": status,
+        "timestamp": time.time()
+    }
+
+@app.post("/word/clear")
+async def clear_current_word():
+    """현재 단어 초기화"""
+    global word_recognition_system
+    
+    if word_recognition_system is None:
+        raise HTTPException(status_code=503, detail="단어 인식 시스템이 초기화되지 않았습니다")
+    
+    word_recognition_system.clear_current_word()
+    
+    return {
+        "message": "현재 단어가 초기화되었습니다",
+        "timestamp": time.time()
     }
 
 if __name__ == "__main__":

@@ -16,12 +16,11 @@ class KSLCsvDataset(Dataset):
         self.data = []
         self.labels = []
         
-        # 라벨 매퍼 초기화
+        # 라벨 매퍼 초기화 (24개 클래스 지원)
         if self.use_labeling:
-            self.label_mapper = KSLLabelMapper()
-            # 현재 데이터에 있는 클래스만 사용 (ㄱ, ㄴ, ㄷ, ㄹ, ㅁ)
-            self.available_classes = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ']
-            self.class_to_simplified_id = {cls: idx for idx, cls in enumerate(self.available_classes)}
+            self.label_mapper = KSLLabelMapper()  # 24개 클래스 지원
+            print(f"📊 데이터셋 초기화: {len(self.files)}개 파일")
+            print(f"🎯 지원 클래스: {self.label_mapper.get_num_classes()}개")
         
         # 각 파일별로 데이터 처리
         for file_path in self.files:
@@ -31,18 +30,10 @@ class KSLCsvDataset(Dataset):
                 
                 # 라벨 추출
                 if self.use_labeling:
-                    original_label = self.label_mapper.extract_label_from_filename(filename)
-                    if original_label is None:
+                    label = self.label_mapper.extract_label_from_filename(filename)
+                    if label is None:
                         print(f"Warning: 라벨 추출 실패 - {filename}, 기본값 0 사용")
                         label = 0
-                    else:
-                        # 원래 클래스명을 찾아서 simplified ID로 변환
-                        original_class = self.label_mapper.id_to_class.get(original_label, None)
-                        if original_class in self.class_to_simplified_id:
-                            label = self.class_to_simplified_id[original_class]
-                        else:
-                            print(f"Warning: 알 수 없는 클래스 {original_class} in {filename}, 기본값 0 사용")
-                            label = 0
                 else:
                     label = 0
                 
@@ -97,26 +88,17 @@ class KSLCsvDataset(Dataset):
         distribution = {}
         
         for class_id, count in zip(unique, counts):
-            if self.use_labeling and class_id < len(self.available_classes):
-                class_name = self.available_classes[class_id]
-                distribution[f"{class_name}({class_id})"] = count
+            if self.use_labeling:
+                class_name = self.label_mapper.get_class_name(class_id)
+                distribution[class_name] = count
             else:
-                distribution[f"unknown({class_id})"] = count
+                distribution[f"class_{class_id}"] = count
                 
         return distribution
     
-    def print_dataset_info(self):
-        """데이터셋 정보 출력"""
-        print(f"\n=== KSL Dataset 정보 ===")
-        print(f"총 윈도우 수: {len(self.data)}")
-        print(f"윈도우 크기: {self.window_size}")
-        print(f"스트라이드: {self.stride}")
-        print(f"특징 차원: {self.data[0].shape if len(self.data) > 0 else 'N/A'}")
-        print(f"라벨링 사용: {self.use_labeling}")
-        
-        if len(self.data) > 0:
-            print(f"\n클래스 분포:")
-            distribution = self.get_class_distribution()
-            for class_name, count in distribution.items():
-                print(f"  {class_name}: {count}개")
-        print("=" * 30)
+    def get_num_classes(self):
+        """총 클래스 수 반환"""
+        if self.use_labeling:
+            return self.label_mapper.get_num_classes()
+        else:
+            return 1
