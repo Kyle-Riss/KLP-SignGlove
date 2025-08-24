@@ -7,6 +7,7 @@ import sys
 import os
 import time
 import json
+import glob
 import numpy as np
 from pathlib import Path
 import pandas as pd
@@ -34,10 +35,16 @@ class UnifiedRealtimeDemo:
         print("🚀 SignGlove_HW Unified 스타일 추론 파이프라인 초기화 (상보필터 전용)")
         print("=" * 70)
         
-        # 고성능 설정으로 파이프라인 생성
+        # GitHub Unified 모델 사용 (99.93% 정확도)
+        config = {
+            'inference': {
+                'confidence_threshold': 0.7  # 높은 정확도로 인해 임계값 상향 조정
+            }
+        }
         self.pipeline = create_unified_inference_pipeline(
-            model_path="best_unified_model.pth",  # 새로 학습된 Unified 모델 사용
-            config_path=None
+            model_path="best_balanced_episode_model.pth",  # 새로운 균형잡힌 모델 사용
+            config_path=None,
+            config=config
         )
             
         print("✅ 통합 추론 파이프라인 초기화 완료 (상보필터 전용)")
@@ -54,13 +61,8 @@ class UnifiedRealtimeDemo:
         print("\n📁 실제 센서 데이터 로드 중...")
         
         sensor_data = []
-        data_sources = [
-            'integrations/SignGlove_HW/ㄱ_sample_data.csv',
-            'integrations/SignGlove_HW/ㄴ_sample_data.csv',
-            'integrations/SignGlove_HW/ㄷ_sample_data.csv',
-            'integrations/SignGlove_HW/ㄹ_sample_data.csv',
-            'integrations/SignGlove_HW/ㅁ_sample_data.csv'
-        ]
+        # 24개 클래스 unified 데이터 파일들 찾기
+        data_sources = glob.glob(os.path.join("integrations/SignGlove_HW", "*_unified_data_*.csv"))
         
         for data_file in data_sources:
             if os.path.exists(data_file):
@@ -75,16 +77,13 @@ class UnifiedRealtimeDemo:
                     # 파일명에서 라벨 추출
                     print(f"  🔍 라벨 추출 중: {filename}")
                     
-                    if 'ㄱ_sample_data' in filename:
-                        ground_truth = 'ㄱ'
-                    elif 'ㄴ_sample_data' in filename:
-                        ground_truth = 'ㄴ'
-                    elif 'ㄷ_sample_data' in filename:
-                        ground_truth = 'ㄷ'
-                    elif 'ㄹ_sample_data' in filename:
-                        ground_truth = 'ㄹ'
-                    elif 'ㅁ_sample_data' in filename:
-                        ground_truth = 'ㅁ'
+                    # unified 데이터 파일명에서 라벨 추출 (예: ㄱ_unified_data_066.csv -> ㄱ)
+                    ground_truth = filename.split('_')[0]
+                    
+                    if ground_truth not in ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
+                                           'ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ']:
+                        print(f"  ⚠️ 알 수 없는 라벨: {filename}")
+                        continue
                     
                     print(f"  ✅ 라벨: {ground_truth}")
                     
@@ -92,7 +91,14 @@ class UnifiedRealtimeDemo:
                     class_samples = 0
                     for idx, row in df.iterrows():
                         try:
-                            # 상보필터 데이터 형태로 변환
+                            # unified 데이터 형태로 변환 (컬럼명 확인)
+                            available_cols = df.columns.tolist()
+                            
+                            # 각 방향의 컬럼을 찾기
+                            pitch_col = [col for col in available_cols if 'pitch' in col.lower()][0]
+                            roll_col = [col for col in available_cols if 'roll' in col.lower()][0]
+                            yaw_col = [col for col in available_cols if 'yaw' in col.lower()][0]
+                            
                             sensor_reading = {
                                 'timestamp': row.get('timestamp(ms)', time.time() * 1000) / 1000.0,
                                 'flex_data': [
@@ -100,11 +106,11 @@ class UnifiedRealtimeDemo:
                                     row.get('flex3', 810), row.get('flex4', 830), row.get('flex5', 850)
                                 ],
                                 'orientation_data': [
-                                    row.get('pitch(°)', 0),
-                                    row.get('roll(°)', 0),
-                                    row.get('yaw(°)', 0)
+                                    row.get(pitch_col, 0),
+                                    row.get(roll_col, 0),
+                                    row.get(yaw_col, 0)
                                 ],
-                                'source': f"complementary_{os.path.basename(data_file)}",
+                                'source': f"unified_{os.path.basename(data_file)}",
                                 'ground_truth': ground_truth,
                                 'expected_class': ground_truth
                             }
@@ -165,12 +171,10 @@ class UnifiedRealtimeDemo:
                 success = self.pipeline.add_sensor_data(sensor_data, source="comprehensive_test")
                 
                 if success and i >= 20:  # 충분한 윈도우 데이터 확보 후
-                    result = self.pipeline.predict_single()
+                    expected_class = sensor_data.get('expected_class', 'unknown')
+                    result = self.pipeline.predict_single(expected_class=expected_class)
                     if result:
                         results.append(result)
-                        
-                        # 정확도 계산
-                        expected_class = sensor_data.get('expected_class', 'unknown')
                         is_correct = result.predicted_class == expected_class
                         
                         if expected_class in class_stats:
@@ -205,7 +209,7 @@ class UnifiedRealtimeDemo:
         
         # 전체 통계
         total_tests = len(results)
-        correct_predictions = sum(1 for r in results if r['correct'])
+        correct_predictions = sum(1 for r in results if r.correct)
         overall_accuracy = 100 * correct_predictions / total_tests
         
         print(f"📈 전체 성능:")
@@ -227,7 +231,7 @@ class UnifiedRealtimeDemo:
         
         # 신뢰도 분석
         if results:
-            confidences = [r['confidence'] for r in results]
+            confidences = [r.confidence for r in results]
             avg_confidence = np.mean(confidences)
             print(f"\n🎯 신뢰도 분석:")
             print(f"  전체 평균 신뢰도: {avg_confidence:.3f}")

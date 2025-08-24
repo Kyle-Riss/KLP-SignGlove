@@ -72,6 +72,8 @@ class InferenceResult:
     timestamp: float
     stability_score: float = 0.0
     metadata: Dict = field(default_factory=dict)
+    correct: bool = False  # 예측이 정확한지 여부
+    expected_class: str = ""  # 예상 클래스
 
 class UnifiedInferencePipeline:
     """
@@ -198,10 +200,36 @@ class UnifiedInferencePipeline:
             if not os.path.exists(model_path):
                 raise FileNotFoundError(f"모델 파일을 찾을 수 없습니다: {model_path}")
             
-            # 모델 로드
-            model = torch.load(model_path, map_location=self.device)
-            model.eval()
+            # 모델 로드 (state_dict 또는 전체 모델)
+            checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
             
+            if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
+                # state_dict 형태
+                model = DeepLearningPipeline(
+                    input_features=8,
+                    sequence_length=self.config['preprocessing']['window_size'],
+                    num_classes=self.num_classes,
+                    hidden_dim=128,
+                    num_layers=2,
+                    dropout=0.3
+                ).to(self.device)
+                model.load_state_dict(checkpoint['state_dict'])
+            elif hasattr(checkpoint, 'eval'):
+                # 전체 모델 객체
+                model = checkpoint
+            else:
+                # state_dict만 있는 경우
+                model = DeepLearningPipeline(
+                    input_features=8,
+                    sequence_length=self.config['preprocessing']['window_size'],
+                    num_classes=self.num_classes,
+                    hidden_dim=128,
+                    num_layers=2,
+                    dropout=0.3
+                ).to(self.device)
+                model.load_state_dict(checkpoint)
+            
+            model.eval()
             self.logger.info(f"모델 로드 완료: {model_path}")
             return model
             
@@ -295,40 +323,61 @@ class UnifiedInferencePipeline:
             source=source
         )
         
-        # Flex 데이터 추출
-        flex_data = []
-        for i in range(1, 6):
-            flex_key = f'flex{i}'
-            if flex_key in data:
-                flex_data.append(data[flex_key])
+        # Flex 데이터 추출 (flex_data 키가 있으면 사용, 없으면 개별 키에서 추출)
+        if 'flex_data' in data:
+            reading.flex_data = data['flex_data']
+        else:
+            flex_data = []
+            for i in range(1, 6):
+                flex_key = f'flex{i}'
+                if flex_key in data:
+                    flex_data.append(data[flex_key])
+            
+            if flex_data:
+                reading.flex_data = flex_data
         
-        if flex_data:
-            reading.flex_data = flex_data
-        
-        # 상보필터 각도 데이터 추출
-        orientation_data = []
-        for key in ['pitch', 'roll', 'yaw']:
-            if key in data:
-                orientation_data.append(data[key])
-        
-        if orientation_data:
-            reading.orientation_data = orientation_data
+        # Orientation 데이터 추출 (orientation_data 키가 있으면 사용, 없으면 개별 키에서 추출)
+        if 'orientation_data' in data:
+            reading.orientation_data = data['orientation_data']
+        else:
+            orientation_data = []
+            for key in ['pitch', 'roll', 'yaw']:
+                if key in data:
+                    orientation_data.append(data[key])
+            
+            if orientation_data:
+                reading.orientation_data = orientation_data
         
         return reading
 
     def _parse_list_sensor_data(self, data: List[float], source: str) -> SensorReading:
         """리스트 형태 센서 데이터 파싱 - 상보필터 전용"""
-        if len(data) != 8:
-            raise ValueError(f"센서 데이터는 8개 값이어야 합니다. 받은 값: {len(data)}")
-        
-        reading = SensorReading(
-            timestamp=time.time(),
-            flex_data=data[:5],  # Flex 센서 5개
-            orientation_data=data[5:8],  # 각도 데이터 3개
-            source=source
-        )
-        
-        return reading
+        try:
+            if len(data) != 8:
+                raise ValueError(f"센서 데이터는 8개 값이어야 합니다. 받은 값: {len(data)}")
+            
+            # 안전한 슬라이싱
+            flex_data = data[:5] if len(data) >= 5 else data + [800.0] * (5 - len(data))
+            orientation_data = data[5:8] if len(data) >= 8 else [0.0] * 3
+            
+            reading = SensorReading(
+                timestamp=time.time(),
+                flex_data=flex_data,  # Flex 센서 5개
+                orientation_data=orientation_data,  # 각도 데이터 3개
+                source=source
+            )
+            
+            return reading
+            
+        except Exception as e:
+            self.logger.error(f"리스트 데이터 파싱 실패: {e}, 데이터: {data}")
+            # 기본값으로 fallback
+            return SensorReading(
+                timestamp=time.time(),
+                flex_data=[800.0] * 5,
+                orientation_data=[0.0] * 3,
+                source=source
+            )
 
     def _preprocess_sensor_reading(self, reading: SensorReading) -> SensorReading:
         """센서 읽기 데이터 전처리 - 상보필터 전용"""
@@ -342,14 +391,17 @@ class UnifiedInferencePipeline:
             if self.config['preprocessing']['noise_reduction']:
                 unified_data = self._apply_noise_reduction(unified_data)
             
-            # 정규화
-            normalized_data = self._normalize_sensor_data(unified_data)
+            # 정규화 제거 (학습과 동일하게 원본 데이터 사용)
+            # normalized_data = self._normalize_sensor_data(unified_data)
             
-            # 전처리된 reading 생성
+            # 전처리된 reading 생성 (원본 데이터 사용)
+            flex_data = unified_data[:5].tolist() if len(unified_data) >= 5 else unified_data.tolist() + [0.0] * (5 - len(unified_data))
+            orientation_data = unified_data[5:8].tolist() if len(unified_data) >= 8 else [0.0] * 3
+            
             processed_reading = SensorReading(
                 timestamp=reading.timestamp,
-                flex_data=normalized_data[:5].tolist(),
-                orientation_data=normalized_data[5:8].tolist(),
+                flex_data=flex_data,
+                orientation_data=orientation_data,
                 raw_data=unified_data.tolist(),
                 source=reading.source
             )
@@ -375,44 +427,34 @@ class UnifiedInferencePipeline:
         return data
 
     def _normalize_sensor_data(self, data: np.ndarray) -> np.ndarray:
-        """센서 데이터 정규화"""
+        """센서 데이터 정규화 - 학습과 동일한 방식"""
         try:
-            # 정규화 방법에 따른 처리
-            method = self.config['preprocessing']['normalization_method']
+            # Flex 센서와 Orientation 센서를 분리하여 정규화
+            flex_data = data[:5]  # Flex 센서 5개
+            orientation_data = data[5:8]  # Orientation 센서 3개
             
-            if method == 'minmax':
-                # Min-Max 정규화
-                data_min = np.min(data)
-                data_max = np.max(data)
-                if data_max > data_min:
-                    data = (data - data_min) / (data_max - data_min)
+            # Flex 센서 정규화 (700-900 범위를 0-1로)
+            flex_normalized = np.clip((flex_data - 700) / 200, 0, 1)
             
-            elif method == 'zscore':
-                # Z-score 정규화
-                data_mean = np.mean(data)
-                data_std = np.std(data)
-                if data_std > 0:
-                    data = (data - data_mean) / data_std
+            # Orientation 센서 정규화 (-180~180 범위를 -1~1로)
+            orientation_normalized = np.clip(orientation_data / 180, -1, 1)
             
-            elif method == 'robust':
-                # Robust 정규화
-                data_median = np.median(data)
-                data_mad = np.median(np.abs(data - data_median))
-                if data_mad > 0:
-                    data = (data - data_median) / data_mad
+            # 통합
+            normalized_data = np.concatenate([flex_normalized, orientation_normalized])
             
-            return data
+            return normalized_data
             
         except Exception as e:
             self.logger.error(f"정규화 실패: {e}")
             return data
 
-    def predict_single(self, force_predict: bool = False) -> Optional[InferenceResult]:
+    def predict_single(self, force_predict: bool = False, expected_class: str = "") -> Optional[InferenceResult]:
         """
         단일 추론 수행 - 상보필터 데이터만 사용
         
         Args:
             force_predict: 강제 추론 여부
+            expected_class: 예상 클래스 (정확성 계산용)
             
         Returns:
             추론 결과 또는 None
@@ -434,6 +476,9 @@ class UnifiedInferencePipeline:
             if prediction is None:
                 return None
             
+            # 정확성 계산
+            is_correct = expected_class and prediction['class'] == expected_class
+            
             # 결과 생성
             result = InferenceResult(
                 predicted_class=prediction['class'],
@@ -441,7 +486,9 @@ class UnifiedInferencePipeline:
                 processing_time=inference_time,
                 timestamp=time.time(),
                 stability_score=self._calculate_stability_score(prediction['class']),
-                metadata=prediction.get('metadata', {})
+                metadata=prediction.get('metadata', {}),
+                correct=is_correct,
+                expected_class=expected_class
             )
             
             # 예측 이력 업데이트
@@ -637,18 +684,35 @@ class UnifiedInferencePipeline:
                 time.sleep(0.01)
 
 def create_unified_inference_pipeline(config_path: Optional[str] = None, 
-                                     model_path: str = 'best_dl_model.pth') -> UnifiedInferencePipeline:
+                                     model_path: str = 'best_dl_model.pth',
+                                     config: Optional[Dict] = None) -> UnifiedInferencePipeline:
     """통합 추론 파이프라인 생성 - 상보필터 전용"""
     
     # 설정 로드
-    config = None
+    file_config = None
     if config_path and os.path.exists(config_path):
         with open(config_path, 'r') as f:
-            config = json.load(f)
+            file_config = json.load(f)
+    
+    # 전달된 config와 파일 config 병합
+    if file_config and config:
+        # 중첩 딕셔너리 업데이트
+        for key, value in config.items():
+            if key in file_config and isinstance(value, dict):
+                file_config[key].update(value)
+            else:
+                file_config[key] = value
+        final_config = file_config
+    elif config:
+        final_config = config
+    elif file_config:
+        final_config = file_config
+    else:
+        final_config = None
     
     return UnifiedInferencePipeline(
         model_path=model_path,
-        config=config,
+        config=final_config,
         mode=InferenceMode.REALTIME
     )
 
