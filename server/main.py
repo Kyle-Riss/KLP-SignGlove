@@ -111,8 +111,8 @@ async def startup_event():
         # 라벨 매퍼 초기화
         label_mapper = KSLLabelMapper()
         
-        # 추론 파이프라인 초기화
-        model_path = "best_unified_model.pth"
+        # 추론 파이프라인 초기화 (새로운 Episode 모델 사용)
+        model_path = "best_balanced_episode_model.pth"
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"모델 파일을 찾을 수 없습니다: {model_path}")
         
@@ -121,11 +121,11 @@ async def startup_event():
             config_path=None
         )
         
-        # 모델 정보 설정
+        # 모델 정보 설정 (새로운 Episode 모델 정보)
         model_info = {
-            "model_name": "SignGlove Unified Model",
-            "model_version": "1.0.0",
-            "accuracy": 0.9785,  # 테스트 정확도
+            "model_name": "SignGlove Balanced Episode Model",
+            "model_version": "2.0.0",
+            "accuracy": 0.9989,  # 새로운 테스트 정확도
             "num_classes": 24,
             "supported_classes": list(label_mapper.class_to_id.keys()),
             "input_features": 8,

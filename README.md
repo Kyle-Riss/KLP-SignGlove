@@ -49,6 +49,94 @@ python inference/episode_full_data_demo.py
 python inference/unified_realtime_demo.py
 ```
 
+## 🌐 API 서버
+
+### FastAPI 기반 REST API 서버
+
+**서버 실행:**
+```bash
+python server/main.py
+```
+
+**서버 주소:** `http://localhost:8000`
+
+### 📡 API 엔드포인트
+
+#### **기본 정보**
+- `GET /` - 서버 상태 확인
+- `GET /health` - 헬스 체크
+- `GET /docs` - Swagger UI 문서
+- `GET /redoc` - ReDoc 문서
+
+#### **모델 정보**
+- `GET /model/info` - 모델 정보 조회
+- `GET /model/performance` - 성능 통계 조회
+
+#### **추론 API**
+- `POST /predict` - 단일 센서 데이터로 제스처 예측
+- `POST /predict/batch` - 배치 센서 데이터로 제스처 예측
+- `POST /predict/word` - 단어 인식 (글자 → 단어)
+
+#### **단어 인식**
+- `GET /word/status` - 단어 인식 상태 조회
+- `POST /word/clear` - 현재 단어 초기화
+
+### 🔧 API 사용 예시
+
+#### **1. 서버 상태 확인**
+```bash
+curl http://localhost:8000/
+# {"message":"SignGlove 추론 API 서버","version":"1.0.0","status":"running","docs":"/docs"}
+```
+
+#### **2. 모델 정보 조회**
+```bash
+curl http://localhost:8000/model/info
+# {"model_name":"SignGlove Balanced Episode Model","model_version":"2.0.0","accuracy":0.9989,...}
+```
+
+#### **3. 단일 예측**
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timestamp": 1234567890.123,
+    "pitch": 45.0,
+    "roll": 30.0,
+    "yaw": 60.0,
+    "flex1": 100,
+    "flex2": 150,
+    "flex3": 200,
+    "flex4": 180,
+    "flex5": 120
+  }'
+```
+
+#### **4. 단어 인식**
+```bash
+curl -X POST "http://localhost:8000/predict/word" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timestamp": 1234567890.123,
+    "pitch": 45.0,
+    "roll": 30.0,
+    "yaw": 60.0,
+    "flex1": 100,
+    "flex2": 150,
+    "flex3": 200,
+    "flex4": 180,
+    "flex5": 120
+  }'
+```
+
+### 📊 API 서버 성능
+
+- **모델**: SignGlove Balanced Episode Model v2.0.0
+- **정확도**: 99.89%
+- **지원 클래스**: 24개 (14개 자음 + 10개 모음)
+- **실시간 처리**: 센서 데이터 실시간 추론
+- **단어 인식**: 글자 → 단어 변환 시스템
+
 ## 🧠 모델 학습
 
 ### 균형잡힌 Episode 모델 학습
@@ -155,6 +243,8 @@ KLP-SignGlove/
 │   ├── train_balanced_episode.py        # 균형잡힌 Episode 학습
 │   ├── train_with_full_episode_data.py  # 전체 Episode 데이터 학습
 │   └── label_mapping.py                 # 라벨 매핑
+├── 📁 server/                    # API 서버
+│   └── main.py                          # FastAPI 서버
 ├── 📁 models/                    # 모델 정의
 │   └── deep_learning.py                 # CNN+LSTM+Attention 모델
 ├── 📁 integrations/              # 외부 데이터 통합
@@ -237,6 +327,9 @@ $ python inference/episode_full_data_demo.py
 - [x] 실시간 시뮬레이션 (100% 정확도)
 - [x] 과적합 방지 및 모델 최적화
 - [x] 클래스별 성능 분석
+- [x] FastAPI 기반 REST API 서버
+- [x] 단어 인식 시스템 (글자 → 단어)
+- [x] 실시간 추론 API 엔드포인트
 
 ### 🚧 진행 중인 기능
 - [ ] 웹 인터페이스 개발
