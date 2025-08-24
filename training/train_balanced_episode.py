@@ -54,6 +54,7 @@ class BalancedEpisodeDataset(Dataset):
             raise ValueError("episode CSV 파일을 찾을 수 없습니다.")
         
         print(f"📁 발견된 Episode 파일: {len(data_files)}개")
+        print(f"🔍 첫 번째 파일 경로: {data_files[0] if data_files else 'None'}")
         
         # 클래스별 데이터 수집
         class_data = {}
@@ -127,7 +128,7 @@ class BalancedEpisodeDataset(Dataset):
                 print(f"⚠️ 알 수 없는 클래스: {class_name}")
                 continue
             
-            print(f"📊 {class_name} 클래스: 원본 {len(windows)}개 윈도우")
+            print(f"📊 {class_name} 클래스: 원본 {len(windows)}개 윈도우 (파일: {len([f for f in data_files if class_name in f])}개)")
             
             # 데이터 증강 (보수적으로)
             if self.augment and len(windows) < self.target_samples_per_class:
@@ -212,7 +213,7 @@ class BalancedEpisodeTrainer:
             'data_dir': 'integrations/SignGlove_HW/github_unified_data',
             'window_size': 20,
             'stride': 5,
-            'batch_size': 64,  # 더 큰 배치 크기로 안정화
+            'batch_size': 256,  # 대규모 데이터셋에 적합한 배치 크기
             'learning_rate': 0.0005,  # 더 낮은 학습률
             'epochs': 80,  # 적당한 에포크 수
             'train_split': 0.7,
@@ -221,7 +222,7 @@ class BalancedEpisodeTrainer:
             'early_stopping_patience': 10,  # 더 짧은 인내심
             'save_best_only': True,
             'augment': True,
-            'target_samples_per_class': 500,  # 더 적은 목표 샘플
+            'target_samples_per_class': 5000,  # 600개 파일에서 추출 가능한 실제 샘플 수
             'weight_decay': 1e-3,  # 더 강한 가중치 감쇠
             'scheduler_patience': 8,
             'scheduler_factor': 0.8
