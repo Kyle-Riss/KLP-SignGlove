@@ -1,0 +1,33 @@
+{
+  "overall_accuracy": 86.67,
+  "avg_f1_score": 0.8687650312650312,
+  "high_performance_classes": [
+    "ㄱ",
+    "ㄴ",
+    "ㄷ",
+    "ㄹ",
+    "ㅁ",
+    "ㅅ",
+    "ㅇ",
+    "ㅋ",
+    "ㅌ",
+    "ㅑ",
+    "ㅓ",
+    "ㅜ",
+    "ㅠ"
+  ],
+  "low_performance_classes": [
+    "ㅂ",
+    "ㅏ",
+    "ㅗ",
+    "ㅛ"
+  ],
+  "improvement_achieved": true,
+  "recommendations": [
+    "낮은 성능 클래스 특화 전처리 강화",
+    "데이터 증강 기법 다양화",
+    "앙상블 모델 고려",
+    "하이퍼파라미터 튜닝",
+    "더 깊은 네트워크 구조 실험"
+  ]
+}

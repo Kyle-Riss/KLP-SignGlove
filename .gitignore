@@ -170,10 +170,17 @@ Thumbs.db
 logs/
 
 # Model files (keep only essential ones)
-!best_problem_solver_model.pth
-!final_balanced_episode_model.pth
+!best_improved_preprocessing_model.pth
 
 # Result files (keep only essential ones)
-!problem_solver_*.png
-!balanced_episode_confusion_matrix.png
-!*_analysis_report.json
+!improved_preprocessing_*.png
+!class_accuracy_*.png
+!overfitting_analysis.png
+!data_quality_*.png
+!preprocessing_visualization.png
+
+# Analysis reports (keep only essential ones)
+!improved_preprocessing_*.json
+!class_accuracy_*.json
+!overfitting_analysis_report.json
+!data_quality_*.json
