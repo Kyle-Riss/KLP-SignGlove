@@ -1,0 +1,16 @@
+{
+  "overfitting_classes": [
+    "ㄱ",
+    "ㄴ",
+    "ㅂ",
+    "ㅇ",
+    "ㅎ",
+    "ㅏ",
+    "ㅣ"
+  ],
+  "analysis_summary": {
+    "total_classes": 24,
+    "overfitting_ratio": 0.2916666666666667,
+    "analysis_date": "2025-08-27 01:45:29"
+  }
+}
