@@ -2,41 +2,35 @@
 
 ## 📋 프로젝트 개요
 
-KLP-SignGlove는 SignGlove 하드웨어를 활용한 한국어 수화 인식 시스템입니다. 24개의 한국어 자음/모음을 실시간으로 인식하며, 딥러닝 기반의 고성능 분류 모델을 제공합니다. 데이터 품질 개선과 전처리 파이프라인 최적화를 통해 높은 인식률을 달성했습니다.
+KLP-SignGlove는 SignGlove 하드웨어를 활용한 한국어 수화 인식 시스템입니다. 24개의 한국어 자음/모음을 실시간으로 인식하며, 딥러닝 기반의 고성능 분류 모델을 제공합니다. 교차 검증, 특화 모델, 앙상블 모델 등 다양한 접근법을 통해 최적의 성능을 달성했습니다.
 
 ## 🎯 주요 성과
 
-### ✅ **최종 성능: 86.67% 정확도**
+### ✅ **최종 성능: 77.33% 정확도**
 - **24개 클래스**: 14개 자음 + 10개 모음
-- **실시간 인식**: 300프레임 시퀀스 기반
-- **데이터 품질 개선**: 상보 필터 및 전처리 최적화
-- **클래스별 최적화**: 과적합 문제 해결 및 성능 균형
+- **실시간 인식**: 200프레임 시퀀스 기반
+- **교차 검증**: 안정적인 모델 성능
+- **클래스별 최적화**: 문제 클래스 특화 처리
 
 ### 📊 **클래스별 성능 분석**
 
-#### 🏆 **우수한 성능 클래스 (F1-Score ≥ 0.9)**
-**13개 클래스가 완벽에 가까운 성능 달성**
-- `ㄱ`, `ㄷ`, `ㄹ`, `ㅁ`, `ㅅ`, `ㅇ`, `ㅋ`, `ㅌ`, `ㅑ`, `ㅓ`, `ㅜ`, `ㅠ` - **F1-Score: 1.000**
-- `ㄴ` - **F1-Score: 0.909**
+#### 🏆 **우수한 성능 클래스 (≥95%)**
+**14개 클래스가 높은 성능 달성**
+- `ㄱ`, `ㄴ`, `ㄷ`, `ㄹ`, `ㅁ`, `ㅂ`, `ㅇ`, `ㅎ`, `ㅏ`, `ㅑ`, `ㅓ`, `ㅗ`, `ㅛ`, `ㅜ` - **95% 이상**
 
-#### 🟡 **양호한 성능 클래스 (F1-Score 0.8-0.9)**
-**5개 클래스가 안정적인 성능**
-- `ㅣ` - **F1-Score: 0.889**
-- `ㅊ`, `ㅍ` - **F1-Score: 0.857**
-- `ㅈ`, `ㅡ` - **F1-Score: 0.800**
+#### 🟡 **양호한 성능 클래스 (80-95%)**
+**2개 클래스가 안정적인 성능**
+- `ㅠ`, `ㅍ` - **80-95%**
 
-#### 🔴 **개선 필요 클래스 (F1-Score < 0.7)**
-**4개 클래스 추가 개선 필요**
-- `ㅗ` - **F1-Score: 0.667**
-- `ㅛ` - **F1-Score: 0.571**
-- `ㅏ`, `ㅂ` - **F1-Score: 0.500**
+#### 🔴 **개선 필요 클래스 (<80%)**
+**8개 클래스 추가 개선 필요**
+- `ㅅ`, `ㅈ`, `ㅊ`, `ㅋ`, `ㅌ`, `ㅕ`, `ㅡ`, `ㅣ` - **80% 미만**
+- **특히 `ㅊ`**: 0% 정확도 (가장 심각한 문제)
 
-### ⚠️ **과적합 분석 결과**
-- **과적합 위험도**: 3/4 (높음)
-- **주요 위험 요인**:
-  - 6개 클래스가 3개 이하 샘플로 100% 정확도
-  - 12개 클래스가 Precision=1.0, Recall=1.0 달성
-  - 성능 격차가 큼 (완벽 클래스 vs 일반 클래스)
+### ⚠️ **문제 클래스 분석**
+- **공통 문제**: 높은 Yaw 분산
+- **특화 필요**: 클래스별 맞춤 전처리
+- **센서 의존도**: Flex 센서 vs IMU 센서 차이
 
 ## 🏗️ 시스템 아키텍처
 
@@ -46,12 +40,17 @@ KLP-SignGlove/
 ├── models/                 # 딥러닝 모델
 │   └── deep_learning.py   # 메인 모델 (DeepLearningPipeline)
 ├── training/              # 학습 스크립트
-│   ├── improved_preprocessing_pipeline.py    # 🎯 개선된 전처리 파이프라인
-│   ├── train_with_improved_preprocessing.py  # 최종 학습 스크립트
-│   ├── data_quality_improvement.py           # 데이터 품질 분석
-│   ├── class_accuracy_analysis.py            # 클래스별 정확도 분석
-│   ├── overfitting_analysis.py               # 과적합 분석
-│   └── label_mapping.py   # 라벨 매핑
+│   ├── cross_validation_training.py      # 🎯 교차 검증 훈련
+│   ├── specialized_model_trainer.py      # 특화 모델 훈련
+│   ├── ensemble_model_trainer.py         # 앙상블 모델 훈련
+│   ├── optimized_cv_trainer.py           # 최적화 모델 훈련
+│   ├── final_model_analysis.py           # 최종 모델 분석
+│   ├── specialized_model_analysis.py     # 특화 모델 분석
+│   ├── label_mapping.py                  # 라벨 매핑
+│   ├── dataset.py                        # 데이터셋 클래스
+│   ├── project_complete_summary.md       # 전체 프로젝트 요약
+│   ├── optimization_summary.md           # 최적화 작업 요약
+│   └── cleanup_summary.md                # 정리 작업 요약
 ├── inference/             # 추론 스크립트
 ├── integrations/          # 하드웨어 통합
 │   └── SignGlove_HW/     # SignGlove 하드웨어 데이터
@@ -60,48 +59,64 @@ KLP-SignGlove/
 
 ### 🤖 **모델 아키텍처**
 
-#### **DeepLearningPipeline**
+#### **1. 교차 검증 모델 (DeepLearningPipeline)**
 - **입력**: 8개 센서 (pitch, roll, yaw, flex1-5)
-- **시퀀스 길이**: 300프레임 (정규화됨)
-- **은닉층**: 128차원, 2레이어
+- **시퀀스 길이**: 200프레임 (정규화됨)
+- **은닉층**: 48차원, 1레이어
 - **출력**: 24개 클래스 (자음 14개 + 모음 10개)
-- **정규화**: Dropout 0.3, Weight Decay 1e-4
+- **정규화**: Dropout 0.5, Weight Decay 1e-3
+
+#### **2. 특화 모델 (SpecializedModel)**
+- **구조**: Conv1D + BiLSTM + Multi-head Attention
+- **특징**: 문제 클래스 특화 전처리
+- **파라미터**: 122,312개
+- **성능**: 9.50% (개선 필요)
+
+#### **3. 앙상블 모델**
+- **구성**: 교차 검증 모델 + 특화 모델
+- **동적 가중치**: 클래스별 성능에 따른 조정
+- **성능**: 76.50%
+
+#### **4. 최적화 모델 (OptimizedModel)**
+- **구조**: Conv1D + BatchNorm + BiLSTM + Attention
+- **특징**: 클래스별 특화 강화
+- **목표**: 80% 이상 성능
+- **상태**: 훈련 진행 중
 
 ## 🚀 **핵심 개선 방안**
 
-### 1. **데이터 품질 개선**
+### 1. **교차 검증 전략**
 ```python
-# 상보 필터 적용 (IMU 센서 안정화)
-complementary_filter_alpha = 0.96
-
-# 노이즈 감소 (이동 평균 필터)
-noise_reduction_window = 5
-
-# 이상치 제거 (3σ 기준)
-outlier_threshold = 3.0
+# K-Fold 교차 검증
+n_folds = 5
+# 강화된 정규화
+dropout = 0.5
+weight_decay = 1e-3
+# 데이터 증강
+label_smoothing = 0.2
 ```
 
-### 2. **클래스별 최적화**
+### 2. **클래스별 특화 처리**
 ```python
-# 낮은 일관성 클래스: 강한 정규화
-low_consistency_classes = ['ㄱ', 'ㄴ', 'ㄷ', 'ㅁ', 'ㅕ']
+# 문제 클래스 식별
+problematic_classes = ['ㅊ', 'ㅌ', 'ㅅ', 'ㅈ', 'ㅋ', 'ㅕ', 'ㅡ', 'ㅣ']
 
-# 높은 일관성 클래스: 표준 가중치
-high_consistency_classes = ['ㄹ', 'ㅌ', 'ㅅ', 'ㅇ']
+# ㅊ 클래스: Yaw 영향도 감소
+yaw_weight = 0.7  # 30% 감소
+flex_amplification = 1.3  # 30% 증폭
 
-# yaw 노이즈가 높은 클래스: 특별 처리
-noisy_yaw_classes = ['ㄱ', 'ㅁ', 'ㅍ', 'ㅓ']
+# 모음 클래스: Pitch/Roll 강조
+pitch_roll_weight = 1.15  # 15% 증폭
 ```
 
-### 3. **전처리 파이프라인**
+### 3. **향상된 전처리 파이프라인**
 ```python
-# 1. 기본 정리 (이상치 제거)
-# 2. 상보 필터 적용 (IMU 센서)
-# 3. 노이즈 감소 (이동 평균)
-# 4. Flex 센서 정규화
-# 5. 클래스별 가중치 적용
-# 6. 데이터 길이 정규화 (300프레임)
-# 7. 데이터 증강 (클래스별 차별화)
+# 1. 다단계 Yaw 보정
+# 2. Flex 센서 최적화
+# 3. IMU 센서 강화
+# 4. 클래스별 특화 강화
+# 5. 데이터 길이 정규화 (200프레임)
+# 6. 클래스별 차별화 증강
 ```
 
 ## 📈 **학습 과정 및 결과**
@@ -112,28 +127,24 @@ noisy_yaw_classes = ['ㄱ', 'ㅁ', 'ㅍ', 'ㅓ']
    - 원인: 데이터 누수 (같은 시나리오 내 중복)
    - 해결: 시나리오 단위 데이터 분할
 
-2. **데이터 품질 분석**
-   - yaw 센서 노이즈 문제 발견
-   - 클래스별 일관성 점수 분석
-   - 데이터 불균형 확인
+2. **데이터 분할 전략 진화**
+   - 시나리오 기반 분할 → 파일 기반 분할 → 계층적 샘플링 → 교차 검증
+   - 각 단계별 성능 향상 및 문제 해결
 
-3. **전처리 파이프라인 개선**
-   - 상보 필터 적용으로 IMU 센서 안정화
-   - 클래스별 특화 전처리
-   - 데이터 증강 최적화
+3. **모델 아키텍처 발전**
+   - 기본 모델 → 특화 모델 → 앙상블 모델 → 최적화 모델
+   - 클래스별 특화 처리 및 정규화 강화
 
 4. **최종 성능 달성**
-   - **86.67% 정확도** 달성
-   - 13개 클래스가 90% 이상 성능
-   - 과적합 위험 확인 및 해결 방안 제시
+   - **77.33% 정확도** 달성 (교차 검증 모델)
+   - 14개 클래스가 95% 이상 성능
+   - 8개 클래스 개선 필요
 
-### 📊 **최종 모델 성능**
-- **테스트 정확도**: 86.67%
-- **평균 F1-Score**: 0.869
-- **평균 Precision**: 0.887
-- **평균 Recall**: 0.892
-- **모델 크기**: 987KB
-- **추론 속도**: 실시간 처리 가능
+### 📊 **모델별 성능 비교**
+- **교차 검증 모델**: 77.33% (최고 성능)
+- **앙상블 모델**: 76.50% (성능 하락)
+- **특화 모델**: 9.50% (개선 필요)
+- **최적화 모델**: 훈련 진행 중 (목표 >80%)
 
 ## 🛠️ **설치 및 실행**
 
@@ -147,25 +158,28 @@ cd KLP-SignGlove
 pip install -r requirements.txt
 ```
 
-### **데이터 품질 분석**
+### **모델 훈련**
 ```bash
-# 데이터 품질 분석
-python training/data_quality_improvement.py
-```
+# 교차 검증 모델 훈련
+python training/cross_validation_training.py
 
-### **모델 학습**
-```bash
-# 개선된 전처리 파이프라인으로 학습
-python training/train_with_improved_preprocessing.py
+# 특화 모델 훈련
+python training/specialized_model_trainer.py
+
+# 앙상블 모델 훈련
+python training/ensemble_model_trainer.py
+
+# 최적화 모델 훈련 (진행 중)
+python training/optimized_cv_trainer.py
 ```
 
 ### **성능 분석**
 ```bash
-# 클래스별 정확도 분석
-python training/class_accuracy_analysis.py
+# 최종 모델 성능 분석
+python training/final_model_analysis.py
 
-# 과적합 분석
-python training/overfitting_analysis.py
+# 특화 모델 분석
+python training/specialized_model_analysis.py
 ```
 
 ## 📊 **데이터셋 정보**
@@ -181,58 +195,67 @@ python training/overfitting_analysis.py
 ### **데이터 품질 현황**
 - **손상된 파일**: 0개
 - **빈 데이터 파일**: 0개
-- **일관성 없는 길이**: 1개 클래스
-- **yaw 센서 노이즈**: 4개 클래스에서 높음
+- **일관성 없는 길이**: 해결됨 (200프레임 정규화)
+- **Yaw 센서 노이즈**: 클래스별 특화 처리로 개선
 
 ## 🔍 **주요 발견사항**
 
-### **데이터 품질 개선 효과**
-- **상보 필터**: yaw 센서 노이즈 감소
-- **클래스별 최적화**: 일관성 점수 기반 차별화
-- **전처리 파이프라인**: 종합적 데이터 품질 향상
+### **교차 검증 효과**
+- **안정적 성능**: 89.67% ± 1.35% (검증)
+- **과적합 방지**: Train-Val Gap 최소화
+- **일반화 성능**: 실제 테스트에서 77.33%
 
-### **과적합 문제**
-- **위험도**: 높음 (3/4)
-- **주요 원인**: 적은 샘플 클래스의 완벽한 성능
-- **해결 방안**: 교차 검증, 데이터 증강, 모델 복잡도 감소
+### **문제 클래스 특성**
+- **Yaw 분산**: 모든 문제 클래스에서 높음
+- **센서 의존도**: 클래스별 차이 존재
+- **해결 방안**: 클래스별 특화 전처리 필요
+
+### **앙상블 모델 한계**
+- **성능 하락**: 약한 모델의 영향
+- **동적 가중치**: 효과적이지 않음
+- **개선 방향**: 강한 모델 조합 필요
 
 ## 🎯 **향후 개선 방안**
 
-### **단기 개선 (과적합 해결)**
-1. **교차 검증**: 모델 안정성 확인
-2. **데이터 증강**: 일반화 성능 향상
-3. **모델 복잡도 감소**: 과적합 방지
-4. **정규화 강화**: Dropout, Weight Decay 조정
+### **단기 개선 (최적화 모델 완성)**
+1. **최적화 모델 훈련 완료**: 현재 진행 중
+2. **성능 분석**: 클래스별 개선 효과 확인
+3. **하이퍼파라미터 튜닝**: 필요시 조정
 
 ### **중기 개선**
-1. **낮은 성능 클래스 특화**: `ㅂ`, `ㅏ`, `ㅗ`, `ㅛ`
-2. **앙상블 모델**: 여러 모델 조합
-3. **실시간 최적화**: 추론 속도 개선
+1. **문제 클래스 특화**: 8개 클래스 전용 모델
+2. **센서 품질 개선**: 하드웨어 보정
+3. **데이터 증강**: 클래스별 특화 증강
 
 ### **장기 개선**
-1. **단어 수준 인식**: 자음/모음 조합
-2. **문장 수준 인식**: 문법 규칙 적용
-3. **하드웨어 개선**: 센서 보정
+1. **실시간 시스템**: 추론 최적화
+2. **단어 수준 인식**: 자음/모음 조합
+3. **문장 수준 인식**: 문법 규칙 적용
 
 ## 📝 **주요 파일 설명**
 
 ### **핵심 모델 파일**
-- `best_improved_preprocessing_model.pth`: 최종 개선 모델
-- `training/improved_preprocessing_pipeline.py`: 개선된 전처리 파이프라인
-- `training/train_with_improved_preprocessing.py`: 최종 학습 스크립트
+- `cross_validation_model.pth`: 최고 성능 모델 (77.33%)
+- `specialized_model.pth`: 특화 모델
+- `ensemble_model.pth`: 앙상블 모델
+- `optimized_cv_model.pth`: 최적화 모델 (진행 중)
 
 ### **분석 결과 파일**
-- `improved_preprocessing_confusion_matrix.png`: 최종 혼동 행렬
-- `improved_preprocessing_training_curves.png`: 학습 곡선
-- `class_accuracy_detailed_analysis.png`: 클래스별 정확도 분석
-- `overfitting_analysis.png`: 과적합 분석
-- `data_quality_analysis.png`: 데이터 품질 분석
+- `final_model_analysis.png`: 최종 모델 분석 차트
+- `specialized_model_analysis.png`: 특화 모델 분석 차트
+- `ensemble_model_analysis.png`: 앙상블 모델 분석 차트
+- `cross_validation_analysis.png`: 교차 검증 분석 차트
 
 ### **보고서 파일**
-- `improved_preprocessing_classification_report.json`: 상세 분류 보고서
-- `class_accuracy_ranking_summary.json`: 클래스별 순위 요약
-- `overfitting_analysis_report.json`: 과적합 분석 보고서
-- `data_quality_improvement_strategies.json`: 데이터 품질 개선 전략
+- `final_model_performance_report.json`: 최종 성능 분석
+- `specialized_model_analysis_report.json`: 특화 모델 분석
+- `ensemble_model_report.json`: 앙상블 모델 분석
+- `cross_validation_results.json`: 교차 검증 결과
+
+### **문서 파일**
+- `project_complete_summary.md`: 전체 프로젝트 요약
+- `optimization_summary.md`: 최적화 작업 요약
+- `cleanup_summary.md`: 정리 작업 요약
 
 ## 🤝 **기여 방법**
 
