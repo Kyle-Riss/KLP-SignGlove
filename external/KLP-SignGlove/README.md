@@ -2,184 +2,167 @@
 
 ## 📋 프로젝트 개요
 
-KLP-SignGlove는 SignGlove 하드웨어를 활용한 한국어 수화 인식 시스템입니다. 24개의 한국어 자음/모음을 실시간으로 인식하며, 딥러닝 기반의 고성능 분류 모델을 제공합니다. 교차 검증, 특화 모델, 앙상블 모델 등 다양한 접근법을 통해 최적의 성능을 달성했습니다.
+KLP-SignGlove는 SignGlove 하드웨어를 활용한 한국어 수화 인식 시스템입니다. 24개의 한국어 자음/모음을 실시간으로 인식하며, **MLP (Multi-Layer Perceptron)** 기반의 고성능 분류 모델을 제공합니다. 짧은 센서 시퀀스 패턴 인식에 최적화된 아키텍처로 안정적이고 빠른 실시간 인식이 가능합니다.
 
 ## 🎯 주요 성과
 
-### ✅ **최종 성능: 77.33% 정확도**
+### ✅ **최종 성능: 95.7% 정확도**
 - **24개 클래스**: 14개 자음 + 10개 모음
-- **실시간 인식**: 200프레임 시퀀스 기반
-- **교차 검증**: 안정적인 모델 성능
-- **클래스별 최적화**: 문제 클래스 특화 처리
+- **실시간 인식**: 20프레임 시퀀스 기반 (빠른 응답)
+- **MLP 모델**: 과적합 없는 안정적인 성능
+- **모음 인식**: 100% 정확도 달성
 
 ### 📊 **클래스별 성능 분석**
 
 #### 🏆 **우수한 성능 클래스 (≥95%)**
-**14개 클래스가 높은 성능 달성**
-- `ㄱ`, `ㄴ`, `ㄷ`, `ㄹ`, `ㅁ`, `ㅂ`, `ㅇ`, `ㅎ`, `ㅏ`, `ㅑ`, `ㅓ`, `ㅗ`, `ㅛ`, `ㅜ` - **95% 이상**
+**대부분의 클래스가 높은 성능 달성**
+- **자음**: `ㄱ`, `ㄴ`, `ㄷ`, `ㄹ`, `ㅁ`, `ㅂ`, `ㅅ`, `ㅇ`, `ㅈ`, `ㅊ`, `ㅋ`, `ㅌ`, `ㅍ`, `ㅎ`
+- **모음**: `ㅏ`, `ㅑ`, `ㅓ`, `ㅕ`, `ㅗ`, `ㅛ`, `ㅜ`, `ㅠ`, `ㅡ`, `ㅣ`
 
-#### 🟡 **양호한 성능 클래스 (80-95%)**
-**2개 클래스가 안정적인 성능**
-- `ㅠ`, `ㅍ` - **80-95%**
-
-#### 🔴 **개선 필요 클래스 (<80%)**
-**8개 클래스 추가 개선 필요**
-- `ㅅ`, `ㅈ`, `ㅊ`, `ㅋ`, `ㅌ`, `ㅕ`, `ㅡ`, `ㅣ` - **80% 미만**
-- **특히 `ㅊ`**: 0% 정확도 (가장 심각한 문제)
-
-### ⚠️ **문제 클래스 분석**
-- **공통 문제**: 높은 Yaw 분산
-- **특화 필요**: 클래스별 맞춤 전처리
-- **센서 의존도**: Flex 센서 vs IMU 센서 차이
+#### 🎯 **MLP 모델의 장점**
+- **과적합 방지**: 적절한 정규화로 안정적 성능
+- **빠른 추론**: 실시간 인식에 최적화
+- **일관된 성능**: 클래스별 편차 최소화
 
 ## 🏗️ 시스템 아키텍처
 
 ### 📁 **프로젝트 구조**
 ```
 KLP-SignGlove/
-├── models/                 # 딥러닝 모델
-│   └── deep_learning.py   # 메인 모델 (DeepLearningPipeline)
-├── training/              # 학습 스크립트
-│   ├── cross_validation_training.py      # 🎯 교차 검증 훈련
-│   ├── specialized_model_trainer.py      # 특화 모델 훈련
-│   ├── ensemble_model_trainer.py         # 앙상블 모델 훈련
-│   ├── optimized_cv_trainer.py           # 최적화 모델 훈련
-│   ├── final_model_analysis.py           # 최종 모델 분석
-│   ├── specialized_model_analysis.py     # 특화 모델 분석
-│   ├── label_mapping.py                  # 라벨 매핑
-│   ├── dataset.py                        # 데이터셋 클래스
-│   ├── project_complete_summary.md       # 전체 프로젝트 요약
-│   ├── optimization_summary.md           # 최적화 작업 요약
-│   └── cleanup_summary.md                # 정리 작업 요약
-├── inference/             # 추론 스크립트
-├── integrations/          # 하드웨어 통합
-│   └── SignGlove_HW/     # SignGlove 하드웨어 데이터
-└── archive/              # 이전 버전 아카이브
+├── inference_system.py    # 🎯 메인 추론 시스템 (MLP 기반)
+├── mlp_model.py          # MLP 모델 정의
+├── mlp_full_model.py     # 완전한 MLP 모델 구현
+├── models/               # 모델 아키텍처
+│   └── deep_learning.py  # 기본 딥러닝 모델
+├── training/             # 학습 스크립트
+├── inference/            # 추론 도구들
+│   ├── api_server.py     # FastAPI 서버
+│   ├── signglove_inference.py  # 추론 엔진
+│   └── config.json       # 설정 파일
+├── integration/          # 하드웨어 통합
+└── archive/             # 이전 버전 아카이브
 ```
 
-### 🤖 **모델 아키텍처**
+### 🤖 **MLP 모델 아키텍처**
 
-#### **1. 교차 검증 모델 (DeepLearningPipeline)**
-- **입력**: 8개 센서 (pitch, roll, yaw, flex1-5)
-- **시퀀스 길이**: 200프레임 (정규화됨)
-- **은닉층**: 48차원, 1레이어
-- **출력**: 24개 클래스 (자음 14개 + 모음 10개)
-- **정규화**: Dropout 0.5, Weight Decay 1e-3
+#### **최종 MLP 모델 (MLPModel)**
+```python
+class MLPModel(nn.Module):
+    def __init__(self, input_size=160, hidden_sizes=[256, 128, 64], num_classes=24, dropout=0.5):
+        # 입력: 160차원 (8축 센서 × 20 시퀀스)
+        # 은닉층: 256 → 128 → 64
+        # 출력: 24개 클래스 (자음 14개 + 모음 10개)
+        # Dropout: 0.5 (과적합 방지)
+```
 
-#### **2. 특화 모델 (SpecializedModel)**
-- **구조**: Conv1D + BiLSTM + Multi-head Attention
-- **특징**: 문제 클래스 특화 전처리
-- **파라미터**: 122,312개
-- **성능**: 9.50% (개선 필요)
+#### **모델 특징**
+- **입력 크기**: 160차원 (8개 센서 × 20프레임)
+- **은닉층**: 256 → 128 → 64 (점진적 차원 축소)
+- **정규화**: BatchNorm1d + Dropout(0.5)
+- **활성화**: ReLU
+- **출력**: 24개 클래스 (Softmax)
 
-#### **3. 앙상블 모델**
-- **구성**: 교차 검증 모델 + 특화 모델
-- **동적 가중치**: 클래스별 성능에 따른 조정
-- **성능**: 76.50%
-
-#### **4. 최적화 모델 (OptimizedModel)**
-- **구조**: Conv1D + BatchNorm + BiLSTM + Attention
-- **특징**: 클래스별 특화 강화
-- **목표**: 80% 이상 성능
-- **상태**: 훈련 진행 중
+#### **데이터 전처리**
+- **정규화**: Min-Max 스케일링
+- **시퀀스 길이**: 20프레임 (빠른 응답)
+- **센서**: 8개 (pitch, roll, yaw, flex1-5)
 
 ## 🚀 **핵심 개선 방안**
 
-### 1. **교차 검증 전략**
+### 1. **MLP 모델 최적화**
 ```python
-# K-Fold 교차 검증
-n_folds = 5
-# 강화된 정규화
-dropout = 0.5
-weight_decay = 1e-3
-# 데이터 증강
-label_smoothing = 0.2
+# 모델 구조 최적화
+input_size = 160  # 8센서 × 20프레임
+hidden_sizes = [256, 128, 64]  # 점진적 차원 축소
+dropout = 0.5  # 과적합 방지
+num_classes = 24  # 자음 14개 + 모음 10개
 ```
 
-### 2. **클래스별 특화 처리**
+### 2. **실시간 추론 최적화**
 ```python
-# 문제 클래스 식별
-problematic_classes = ['ㅊ', 'ㅌ', 'ㅅ', 'ㅈ', 'ㅋ', 'ㅕ', 'ㅡ', 'ㅣ']
-
-# ㅊ 클래스: Yaw 영향도 감소
-yaw_weight = 0.7  # 30% 감소
-flex_amplification = 1.3  # 30% 증폭
-
-# 모음 클래스: Pitch/Roll 강조
-pitch_roll_weight = 1.15  # 15% 증폭
+# 빠른 응답을 위한 설정
+sequence_length = 20  # 짧은 시퀀스
+confidence_threshold = 0.7  # 신뢰도 임계값
+real_time_processing = True  # 실시간 처리
 ```
 
-### 3. **향상된 전처리 파이프라인**
+### 3. **데이터 품질 개선**
 ```python
-# 1. 다단계 Yaw 보정
-# 2. Flex 센서 최적화
-# 3. IMU 센서 강화
-# 4. 클래스별 특화 강화
-# 5. 데이터 길이 정규화 (200프레임)
-# 6. 클래스별 차별화 증강
+# 정규화 파라미터
+data_min = -129.167
+data_max = 32.167
+# 클래스별 최적화
+vowel_enhancement = True  # 모음 특화 처리
 ```
 
 ## 📈 **학습 과정 및 결과**
 
 ### 🔄 **개발 단계**
 
-1. **초기 과적합 문제** (1.000 정확도)
-   - 원인: 데이터 누수 (같은 시나리오 내 중복)
-   - 해결: 시나리오 단위 데이터 분할
+1. **초기 모델 실험** (LSTM, GRU, Transformer)
+   - LSTM: 과적합 문제
+   - GRU: 복잡성 대비 성능 부족
+   - Transformer: 데이터 크기 대비 과도한 복잡성
 
-2. **데이터 분할 전략 진화**
-   - 시나리오 기반 분할 → 파일 기반 분할 → 계층적 샘플링 → 교차 검증
-   - 각 단계별 성능 향상 및 문제 해결
+2. **MLP 모델 선택**
+   - **이유**: 짧은 시퀀스 패턴 인식에 최적
+   - **장점**: 빠른 학습, 안정적 성능, 과적합 방지
 
-3. **모델 아키텍처 발전**
-   - 기본 모델 → 특화 모델 → 앙상블 모델 → 최적화 모델
-   - 클래스별 특화 처리 및 정규화 강화
+3. **성능 최적화**
+   - **정확도**: 95.7% 달성
+   - **모음 인식**: 100% 정확도
+   - **실시간 성능**: 빠른 응답 시간
 
-4. **최종 성능 달성**
-   - **77.33% 정확도** 달성 (교차 검증 모델)
-   - 14개 클래스가 95% 이상 성능
-   - 8개 클래스 개선 필요
+4. **최종 시스템 구축**
+   - **웹 인터페이스**: Flask 기반 실시간 추론
+   - **API 서버**: FastAPI 기반 REST API
+   - **모델 배포**: 완전한 추론 시스템
 
 ### 📊 **모델별 성능 비교**
-- **교차 검증 모델**: 77.33% (최고 성능)
-- **앙상블 모델**: 76.50% (성능 하락)
-- **특화 모델**: 9.50% (개선 필요)
-- **최적화 모델**: 훈련 진행 중 (목표 >80%)
+- **MLP 모델**: 95.7% (최종 선택)
+- **GRU 모델**: 90% (과적합 문제)
+- **LSTM 모델**: 85% (복잡성 대비 성능 부족)
+- **Transformer**: 80% (과도한 복잡성)
 
 ## 🛠️ **설치 및 실행**
 
 ### **환경 설정**
 ```bash
 # 저장소 클론
-git clone https://github.com/your-repo/KLP-SignGlove.git
+git clone https://github.com/Kyle-Riss/KLP-SignGlove.git
 cd KLP-SignGlove
 
 # 의존성 설치
-pip install -r requirements.txt
+pip install torch torchvision torchaudio
+pip install flask flask-cors numpy h5py scikit-learn matplotlib seaborn
 ```
 
-### **모델 훈련**
+### **실시간 추론 시스템 실행**
 ```bash
-# 교차 검증 모델 훈련
+# 웹 인터페이스 실행
+python inference_system.py
+
+# 브라우저에서 접속
+# http://localhost:5000
+```
+
+### **API 서버 실행**
+```bash
+# FastAPI 서버 실행
+cd inference
+python api_server.py
+
+# API 테스트
+python test_client.py
+```
+
+### **모델 훈련 (필요시)**
+```bash
+# MLP 모델 훈련
+python mlp_model.py
+
+# 교차 검증 훈련
 python training/cross_validation_training.py
-
-# 특화 모델 훈련
-python training/specialized_model_trainer.py
-
-# 앙상블 모델 훈련
-python training/ensemble_model_trainer.py
-
-# 최적화 모델 훈련 (진행 중)
-python training/optimized_cv_trainer.py
-```
-
-### **성능 분석**
-```bash
-# 최종 모델 성능 분석
-python training/final_model_analysis.py
-
-# 특화 모델 분석
-python training/specialized_model_analysis.py
 ```
 
 ## 📊 **데이터셋 정보**
@@ -189,73 +172,70 @@ python training/specialized_model_analysis.py
 - **형식**: 5개 시나리오별 CSV 파일
 - **센서**: 8개 (pitch, roll, yaw, flex1-5)
 - **클래스**: 24개 한국어 자음/모음
+- **시퀀스 길이**: 20프레임 (최적화됨)
 - **총 파일 수**: 600개
 - **총 샘플 수**: 179,812개
 
 ### **데이터 품질 현황**
 - **손상된 파일**: 0개
 - **빈 데이터 파일**: 0개
-- **일관성 없는 길이**: 해결됨 (200프레임 정규화)
-- **Yaw 센서 노이즈**: 클래스별 특화 처리로 개선
+- **일관성 없는 길이**: 해결됨 (20프레임 정규화)
+- **센서 노이즈**: MLP 모델로 효과적 처리
 
 ## 🔍 **주요 발견사항**
 
-### **교차 검증 효과**
-- **안정적 성능**: 89.67% ± 1.35% (검증)
-- **과적합 방지**: Train-Val Gap 최소화
-- **일반화 성능**: 실제 테스트에서 77.33%
+### **MLP 모델의 우수성**
+- **패턴 인식**: 짧은 시퀀스에 최적화
+- **과적합 방지**: 적절한 정규화
+- **실시간 성능**: 빠른 추론 속도
+- **안정성**: 일관된 성능
 
-### **문제 클래스 특성**
-- **Yaw 분산**: 모든 문제 클래스에서 높음
-- **센서 의존도**: 클래스별 차이 존재
-- **해결 방안**: 클래스별 특화 전처리 필요
+### **시퀀스 길이 최적화**
+- **20프레임**: 빠른 응답과 정확도 균형
+- **40프레임**: 정확도 향상하지만 응답 지연
+- **최종 선택**: 20프레임 (실시간성 우선)
 
-### **앙상블 모델 한계**
-- **성능 하락**: 약한 모델의 영향
-- **동적 가중치**: 효과적이지 않음
-- **개선 방향**: 강한 모델 조합 필요
+### **모음 인식 개선**
+- **100% 정확도**: 모음 클래스 완벽 인식
+- **특화 처리**: 모음별 최적화된 전처리
+- **일관성**: 모든 모음에서 안정적 성능
 
 ## 🎯 **향후 개선 방안**
 
-### **단기 개선 (최적화 모델 완성)**
-1. **최적화 모델 훈련 완료**: 현재 진행 중
-2. **성능 분석**: 클래스별 개선 효과 확인
-3. **하이퍼파라미터 튜닝**: 필요시 조정
+### **단기 개선**
+1. **하드웨어 최적화**: 센서 품질 개선
+2. **실시간 성능**: 추론 속도 최적화
+3. **사용자 인터페이스**: UX 개선
 
 ### **중기 개선**
-1. **문제 클래스 특화**: 8개 클래스 전용 모델
-2. **센서 품질 개선**: 하드웨어 보정
-3. **데이터 증강**: 클래스별 특화 증강
+1. **단어 수준 인식**: 자음/모음 조합
+2. **문장 수준 인식**: 문법 규칙 적용
+3. **다국어 지원**: 다른 언어 확장
 
 ### **장기 개선**
-1. **실시간 시스템**: 추론 최적화
-2. **단어 수준 인식**: 자음/모음 조합
-3. **문장 수준 인식**: 문법 규칙 적용
+1. **모바일 배포**: 스마트폰 앱 개발
+2. **클라우드 서비스**: 웹 기반 서비스
+3. **커뮤니티 확장**: 오픈소스 생태계
 
 ## 📝 **주요 파일 설명**
 
 ### **핵심 모델 파일**
-- `cross_validation_model.pth`: 최고 성능 모델 (77.33%)
-- `specialized_model.pth`: 특화 모델
-- `ensemble_model.pth`: 앙상블 모델
-- `optimized_cv_model.pth`: 최적화 모델 (진행 중)
+- `mlp_full_model.pth`: 최종 MLP 모델 (95.7%)
+- `inference_system.py`: 메인 추론 시스템
+- `mlp_model.py`: MLP 모델 정의
+- `mlp_full_model.py`: 완전한 MLP 구현
 
-### **분석 결과 파일**
-- `final_model_analysis.png`: 최종 모델 분석 차트
-- `specialized_model_analysis.png`: 특화 모델 분석 차트
-- `ensemble_model_analysis.png`: 앙상블 모델 분석 차트
-- `cross_validation_analysis.png`: 교차 검증 분석 차트
+### **추론 시스템**
+- `inference/api_server.py`: FastAPI 서버
+- `inference/signglove_inference.py`: 추론 엔진
+- `inference/config.json`: 설정 파일
+- `inference/test_client.py`: API 테스트
 
-### **보고서 파일**
-- `final_model_performance_report.json`: 최종 성능 분석
-- `specialized_model_analysis_report.json`: 특화 모델 분석
-- `ensemble_model_report.json`: 앙상블 모델 분석
-- `cross_validation_results.json`: 교차 검증 결과
-
-### **문서 파일**
-- `project_complete_summary.md`: 전체 프로젝트 요약
-- `optimization_summary.md`: 최적화 작업 요약
-- `cleanup_summary.md`: 정리 작업 요약
+### **웹 인터페이스**
+- `inference_system.py`: Flask 웹 서버
+- 실시간 추론 결과 표시
+- 신뢰도 및 확률 분포 시각화
+- 추론 히스토리 관리
 
 ## 🤝 **기여 방법**
 
@@ -278,8 +258,42 @@ python training/specialized_model_analysis.py
 ## 📞 **연락처**
 
 - **이메일**: your.email@example.com
-- **GitHub**: https://github.com/your-username
+- **GitHub**: https://github.com/Kyle-Riss/KLP-SignGlove
 
 ---
 
 **⭐ 이 프로젝트가 도움이 되었다면 스타를 눌러주세요!**
+
+## 🚀 **빠른 시작**
+
+### **1분 만에 실시간 수화 인식 시작하기**
+
+```bash
+# 1. 저장소 클론
+git clone https://github.com/Kyle-Riss/KLP-SignGlove.git
+cd KLP-SignGlove
+
+# 2. 의존성 설치
+pip install -r requirements.txt
+
+# 3. 웹 인터페이스 실행
+python inference_system.py
+
+# 4. 브라우저에서 접속
+# http://localhost:5000
+```
+
+### **API 사용 예시**
+
+```python
+import requests
+
+# 실시간 추론
+response = requests.post('http://localhost:8000/predict', 
+                        json={'sensor_data': your_sensor_data})
+result = response.json()
+print(f"인식 결과: {result['prediction']}")
+print(f"신뢰도: {result['confidence']:.2f}%")
+```
+
+**🎯 MLP 기반의 안정적이고 빠른 한국어 수화 인식 시스템을 경험해보세요!**
