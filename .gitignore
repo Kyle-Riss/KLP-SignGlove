@@ -128,6 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+<<<<<<< HEAD
 # SignGlove specific
 *.log
 *.csv
@@ -137,12 +138,36 @@ data/processed/*.csv
 *.db
 
 # IDE
+=======
+# Large data files
+integrations/SignGlove_HW/github_unified_data/
+*.csv
+*.h5
+*.pkl
+*.pth
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.avi
+*.mov
+
+# Archive files
+archive/
+*.zip
+*.tar.gz
+*.rar
+
+# IDE files
+>>>>>>> 2196192a0c7e8becbd7084e47d4c9f6f2d326b77
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+<<<<<<< HEAD
 # OS
 .DS_Store
 .DS_Store?
@@ -156,3 +181,34 @@ Thumbs.db
 *.hex
 *.elf
 *.mapexternal/
+=======
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Log files
+*.log
+logs/
+
+# Model files (keep only essential ones)
+!best_improved_preprocessing_model.pth
+
+# Result files (keep only essential ones)
+!improved_preprocessing_*.png
+!class_accuracy_*.png
+!overfitting_analysis.png
+!data_quality_*.png
+!preprocessing_visualization.png
+
+# Analysis reports (keep only essential ones)
+!improved_preprocessing_*.json
+!class_accuracy_*.json
+!overfitting_analysis_report.json
+!data_quality_*.json
+>>>>>>> 2196192a0c7e8becbd7084e47d4c9f6f2d326b77

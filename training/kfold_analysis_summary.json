@@ -1,0 +1,146 @@
+{
+  "analysis_timestamp": "2025-08-28T16:24:42.079059",
+  "cv_performance": {
+    "n_folds": 5,
+    "mean_accuracy": 0.8966666666666667,
+    "std_accuracy": 0.01354006400772659,
+    "min_accuracy": 0.875,
+    "max_accuracy": 0.9166666666666666,
+    "accuracy_range": 0.04166666666666663,
+    "cv_score": "0.8967 ± 0.0135",
+    "fold_details": [
+      {
+        "fold_idx": 0,
+        "accuracy": 0.875,
+        "best_epoch": 36,
+        "underfitting": false,
+        "overfitting": false,
+        "status": "정상"
+      },
+      {
+        "fold_idx": 1,
+        "accuracy": 0.9,
+        "best_epoch": 38,
+        "underfitting": false,
+        "overfitting": false,
+        "status": "정상"
+      },
+      {
+        "fold_idx": 2,
+        "accuracy": 0.8916666666666667,
+        "best_epoch": 40,
+        "underfitting": false,
+        "overfitting": false,
+        "status": "정상"
+      },
+      {
+        "fold_idx": 3,
+        "accuracy": 0.9166666666666666,
+        "best_epoch": 34,
+        "underfitting": false,
+        "overfitting": false,
+        "status": "정상"
+      },
+      {
+        "fold_idx": 4,
+        "accuracy": 0.9,
+        "best_epoch": 33,
+        "underfitting": false,
+        "overfitting": false,
+        "status": "정상"
+      }
+    ],
+    "stability_score": 86.45993599227342,
+    "consistency_level": "매우 높음"
+  },
+  "performance_comparison": {
+    "cv_accuracy": 0.8966666666666667,
+    "final_accuracy": 0.7733333333333333,
+    "performance_drop": 0.1233333333333334,
+    "drop_percentage": 13.754646840148707,
+    "generalization_gap": 0.1233333333333334,
+    "drop_analysis": "높음 (데이터 누수 가능성)"
+  },
+  "class_performance": {
+    "total_classes": 24,
+    "excellent_classes": [
+      "ㄱ",
+      "ㄴ",
+      "ㄷ",
+      "ㄹ",
+      "ㅁ",
+      "ㅂ",
+      "ㅍ",
+      "ㅎ",
+      "ㅏ",
+      "ㅑ",
+      "ㅗ",
+      "ㅛ",
+      "ㅜ",
+      "ㅠ"
+    ],
+    "good_classes": [
+      "ㅇ",
+      "ㅓ"
+    ],
+    "poor_classes": [
+      "ㅅ",
+      "ㅈ",
+      "ㅊ",
+      "ㅋ",
+      "ㅌ",
+      "ㅕ",
+      "ㅡ",
+      "ㅣ"
+    ],
+    "excellent_count": 14,
+    "good_count": 2,
+    "poor_count": 8,
+    "mean_accuracy": 0.7733333333333333,
+    "std_accuracy": 0.3533962208186286,
+    "min_accuracy": 0.0,
+    "max_accuracy": 1.0,
+    "class_performance_dict": {
+      "ㄱ": 1.0,
+      "ㄴ": 1.0,
+      "ㄷ": 1.0,
+      "ㄹ": 1.0,
+      "ㅁ": 1.0,
+      "ㅂ": 1.0,
+      "ㅅ": 0.2,
+      "ㅇ": 0.92,
+      "ㅈ": 0.16,
+      "ㅊ": 0.0,
+      "ㅋ": 0.76,
+      "ㅌ": 0.64,
+      "ㅍ": 1.0,
+      "ㅎ": 1.0,
+      "ㅏ": 1.0,
+      "ㅑ": 1.0,
+      "ㅓ": 0.92,
+      "ㅕ": 0.04,
+      "ㅗ": 1.0,
+      "ㅛ": 1.0,
+      "ㅜ": 1.0,
+      "ㅠ": 1.0,
+      "ㅡ": 0.16,
+      "ㅣ": 0.76
+    }
+  },
+  "key_findings": [
+    "Cross-Validation 평균 정확도: 0.8967 ± 0.0135",
+    "모델 안정성: 매우 높음 (표준편차: 0.0135)",
+    "과적합/과소적합: 모든 fold에서 정상",
+    "성능 하락: 0.1233 (13.75%)",
+    "일반화 갭: 0.1233",
+    "우수 클래스: 14개 (100% 정확도)",
+    "개선 필요 클래스: 8개 (평균 77.3% 정확도)"
+  ],
+  "recommendations": [
+    "성능 하락이 큽니다. 데이터 분할 전략 재검토 필요",
+    "모델 복잡성 조정 고려",
+    "문제 클래스 특화 모델 개발 필요",
+    "클래스별 맞춤 전처리 강화",
+    "전체적인 성능 개선을 위한 모델 아키텍처 재검토"
+  ]
+}

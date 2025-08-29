@@ -1,0 +1,44 @@
+{
+  "n_folds": 5,
+  "mean_validation_accuracy": 0.8966666666666667,
+  "std_validation_accuracy": 0.01354006400772659,
+  "max_validation_accuracy": 0.9166666666666666,
+  "min_validation_accuracy": 0.875,
+  "fold_results": [
+    {
+      "fold_idx": 0,
+      "val_accuracy": 0.875,
+      "best_epoch": 36,
+      "underfitting_detected": false,
+      "overfitting_detected": false
+    },
+    {
+      "fold_idx": 1,
+      "val_accuracy": 0.9,
+      "best_epoch": 38,
+      "underfitting_detected": false,
+      "overfitting_detected": false
+    },
+    {
+      "fold_idx": 2,
+      "val_accuracy": 0.8916666666666667,
+      "best_epoch": 40,
+      "underfitting_detected": false,
+      "overfitting_detected": false
+    },
+    {
+      "fold_idx": 3,
+      "val_accuracy": 0.9166666666666666,
+      "best_epoch": 34,
+      "underfitting_detected": false,
+      "overfitting_detected": false
+    },
+    {
+      "fold_idx": 4,
+      "val_accuracy": 0.9,
+      "best_epoch": 33,
+      "underfitting_detected": false,
+      "overfitting_detected": false
+    }
+  ]
+}

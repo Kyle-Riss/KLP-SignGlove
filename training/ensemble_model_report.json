@@ -1,0 +1,238 @@
+{
+  "overall_performance": {
+    "ensemble_accuracy": 0.765,
+    "cv_accuracy": 0.7733333333333333,
+    "specialized_accuracy": 0.095,
+    "improvement": -0.008333333333333304
+  },
+  "class_performance": {
+    "ㄱ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 1.0,
+      "support": 25
+    },
+    "ㄴ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㄷ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㄹ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅁ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅂ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅅ": {
+      "ensemble_accuracy": 0.08,
+      "cv_accuracy": 0.2,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅇ": {
+      "ensemble_accuracy": 0.92,
+      "cv_accuracy": 0.92,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅈ": {
+      "ensemble_accuracy": 0.0,
+      "cv_accuracy": 0.16,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅊ": {
+      "ensemble_accuracy": 0.12,
+      "cv_accuracy": 0.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅋ": {
+      "ensemble_accuracy": 0.4,
+      "cv_accuracy": 0.76,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅌ": {
+      "ensemble_accuracy": 0.72,
+      "cv_accuracy": 0.64,
+      "specialized_accuracy": 1.0,
+      "support": 25
+    },
+    "ㅍ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅎ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅏ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅑ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅓ": {
+      "ensemble_accuracy": 0.88,
+      "cv_accuracy": 0.92,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅕ": {
+      "ensemble_accuracy": 0.08,
+      "cv_accuracy": 0.04,
+      "specialized_accuracy": 0.04,
+      "support": 25
+    },
+    "ㅗ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅛ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅜ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    },
+    "ㅠ": {
+      "ensemble_accuracy": 1.0,
+      "cv_accuracy": 1.0,
+      "specialized_accuracy": 0.04,
+      "support": 25
+    },
+    "ㅡ": {
+      "ensemble_accuracy": 0.36,
+      "cv_accuracy": 0.16,
+      "specialized_accuracy": 0.2,
+      "support": 25
+    },
+    "ㅣ": {
+      "ensemble_accuracy": 0.8,
+      "cv_accuracy": 0.76,
+      "specialized_accuracy": 0.0,
+      "support": 25
+    }
+  },
+  "improvements": {
+    "ㄱ": 0.0,
+    "ㄴ": 0.0,
+    "ㄷ": 0.0,
+    "ㄹ": 0.0,
+    "ㅁ": 0.0,
+    "ㅂ": 0.0,
+    "ㅅ": -0.12000000000000001,
+    "ㅇ": 0.0,
+    "ㅈ": -0.16,
+    "ㅊ": 0.12,
+    "ㅋ": -0.36,
+    "ㅌ": 0.07999999999999996,
+    "ㅍ": 0.0,
+    "ㅎ": 0.0,
+    "ㅏ": 0.0,
+    "ㅑ": 0.0,
+    "ㅓ": -0.040000000000000036,
+    "ㅕ": 0.04,
+    "ㅗ": 0.0,
+    "ㅛ": 0.0,
+    "ㅜ": 0.0,
+    "ㅠ": 0.0,
+    "ㅡ": 0.19999999999999998,
+    "ㅣ": 0.040000000000000036
+  },
+  "best_improvement": {
+    "class": "ㅡ",
+    "improvement": 0.19999999999999998
+  },
+  "worst_improvement": {
+    "class": "ㅋ",
+    "improvement": -0.36
+  },
+  "problematic_classes_analysis": {
+    "ㅊ": {
+      "ensemble_accuracy": 0.12,
+      "cv_accuracy": 0.0,
+      "specialized_accuracy": 0.0,
+      "improvement": 0.12
+    },
+    "ㅌ": {
+      "ensemble_accuracy": 0.72,
+      "cv_accuracy": 0.64,
+      "specialized_accuracy": 1.0,
+      "improvement": 0.07999999999999996
+    },
+    "ㅅ": {
+      "ensemble_accuracy": 0.08,
+      "cv_accuracy": 0.2,
+      "specialized_accuracy": 0.0,
+      "improvement": -0.12000000000000001
+    },
+    "ㅈ": {
+      "ensemble_accuracy": 0.0,
+      "cv_accuracy": 0.16,
+      "specialized_accuracy": 0.0,
+      "improvement": -0.16
+    },
+    "ㅋ": {
+      "ensemble_accuracy": 0.4,
+      "cv_accuracy": 0.76,
+      "specialized_accuracy": 0.0,
+      "improvement": -0.36
+    },
+    "ㅕ": {
+      "ensemble_accuracy": 0.08,
+      "cv_accuracy": 0.04,
+      "specialized_accuracy": 0.04,
+      "improvement": 0.04
+    },
+    "ㅡ": {
+      "ensemble_accuracy": 0.36,
+      "cv_accuracy": 0.16,
+      "specialized_accuracy": 0.2,
+      "improvement": 0.19999999999999998
+    },
+    "ㅣ": {
+      "ensemble_accuracy": 0.8,
+      "cv_accuracy": 0.76,
+      "specialized_accuracy": 0.0,
+      "improvement": 0.040000000000000036
+    }
+  }
+}
