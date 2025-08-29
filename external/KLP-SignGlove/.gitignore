@@ -56,6 +56,10 @@ models/*.pth
 *_analysis.png
 *_test_results.json
 
+# Keep important config files
+!inference/config.json
+!*.md
+
 # Data files
 datasets/
 data/
