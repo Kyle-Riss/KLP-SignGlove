@@ -1,6 +1,3 @@
-{
-  "accuracy": 100.0,
-  "model_size_mb": 1.805130958557129,
-  "inference_time_ms": 0.7594715465198864,
-  "fps": 1316.7050228310502
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:07a6e0a8f2bcf7c4e06758e53153ccaf4868a34a9387336c7232b63384ccc313
+size 133
