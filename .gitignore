@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.pth
+*.h5
+*.png
+*.jpg
+*.jpeg
+*.csv
+*.json
+*.log
+*.tmp
+*.bak
+
+# Model files (too large for git)
+models/*.pth
+*.pth
+
+# Results and analysis files
+*_results.json
+*_analysis.png
+*_test_results.json
+
+# Keep important config files
+!inference/config.json
+!*.md
+
+# Data files
+datasets/
+data/
+
+# Temporary files
+temp/
+tmp/
+
+# Poetry
+poetry.lock
