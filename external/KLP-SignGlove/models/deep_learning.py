@@ -98,8 +98,7 @@ class DeepLearningPipeline(nn.Module):
         """특징 중요도 분석을 위한 메서드"""
         with torch.no_grad():
             output = self.forward(x)
-            attention_weights = output['attention_weights']
-            return attention_weights.cpu().numpy()
+            return output['attention_weights']
 
 class CNNLSTMAdvanced(nn.Module):
     """

@@ -36,9 +36,21 @@ class CrossValidationPreprocessor:
     def preprocess_file(self, file_path, class_name, augment=False, augment_strength=0.3):
         """Enhanced preprocessing with stronger augmentation"""
         try:
-            # Load only necessary columns
+            # Load data from H5 file
+            import h5py
+            with h5py.File(file_path, 'r') as f:
+                # Get sensor_data from H5 file
+                data_array = f['sensor_data'][:]
+            
+            # Convert to DataFrame with expected columns
             usecols = ['pitch', 'roll', 'yaw', 'flex1', 'flex2', 'flex3', 'flex4', 'flex5']
-            data = pd.read_csv(file_path, usecols=usecols)
+            if data_array.shape[1] >= len(usecols):
+                data = pd.DataFrame(data_array[:, :len(usecols)], columns=usecols)
+            else:
+                # If not enough columns, pad with zeros
+                padded_array = np.zeros((data_array.shape[0], len(usecols)))
+                padded_array[:, :data_array.shape[1]] = data_array
+                data = pd.DataFrame(padded_array, columns=usecols)
             
             # Enhanced yaw correction with stronger filtering
             if 'yaw' in data.columns:
@@ -165,7 +177,7 @@ class CrossValidationDataset(Dataset):
         labels = []
         file_paths = []
         
-        base_path = os.path.join(self.data_dir, 'github_unified_data')
+        base_path = self.data_dir
         
         for class_name in os.listdir(base_path):
             class_path = os.path.join(base_path, class_name)
@@ -183,7 +195,7 @@ class CrossValidationDataset(Dataset):
                     continue
                 
                 for file_name in os.listdir(scenario_path):
-                    if file_name.endswith('.csv'):
+                    if file_name.endswith('.h5'):
                         file_path = os.path.join(scenario_path, file_name)
                         
                         # Load original data
@@ -353,8 +365,8 @@ class CrossValidationTrainer:
         """Create data loaders for cross-validation"""
         preprocessor = CrossValidationPreprocessor()
         
-        train_dataset = CrossValidationDataset('../integrations/SignGlove_HW', preprocessor, fold_idx, self.n_folds, split='train', augment=True)
-        val_dataset = CrossValidationDataset('../integrations/SignGlove_HW', preprocessor, fold_idx, self.n_folds, split='val', augment=False)
+        train_dataset = CrossValidationDataset('/home/billy/25-1kp/SignGlove/external/SignGlove_HW/datasets/unified', preprocessor, fold_idx, self.n_folds, split='train', augment=True)
+        val_dataset = CrossValidationDataset('/home/billy/25-1kp/SignGlove/external/SignGlove_HW/datasets/unified', preprocessor, fold_idx, self.n_folds, split='val', augment=False)
         
         train_loader = DataLoader(
             train_dataset, batch_size=12, shuffle=True, num_workers=2, pin_memory=False  # Reduced batch size
@@ -569,6 +581,9 @@ class CrossValidationTrainer:
         # Save best model from best fold
         best_fold_idx = np.argmax(val_accuracies)
         best_model = fold_results[best_fold_idx]['model']
+        
+        # Add best_fold_idx to cv_results
+        cv_results['best_fold_idx'] = best_fold_idx
         
         torch.save({
             'model_state_dict': best_model.state_dict(),
