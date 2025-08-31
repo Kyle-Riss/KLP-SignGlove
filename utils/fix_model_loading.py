@@ -17,9 +17,9 @@ warnings.filterwarnings('ignore')
 
 # 개선된 모델 아키텍처 import
 sys.path.append('.')
-from improved_model_architecture import RegularizedModel
+from improved_model_architecture import RGRU
 
-def check_model_checkpoint(model_path='models/improved_regularized_model.pth'):
+def check_model_checkpoint(model_path='models/improved_rgru_model.pth'):
     """모델 체크포인트 구조 확인"""
     print('🔍 모델 체크포인트 구조 확인 중...')
     
@@ -52,7 +52,7 @@ def fix_model_loading(checkpoint):
     
     try:
         # 모델 초기화
-        model = RegularizedModel(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
+        model = RGRU(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
         
         # 체크포인트에서 모델 상태 로드
         if 'model_state_dict' in checkpoint:

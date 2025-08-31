@@ -15,13 +15,13 @@ SignGlove는 **데이터 장갑(Data Glove)**을 사용하여 **한글 자음과
 ## 🏗️ 시스템 아키텍처
 
 ### 모델 구조
-- **기본 모델**: RegularizedModel (개선된 GRU 기반)
+- **기본 모델**: RGRU (정규화된 GRU 기반)
 - **입력**: 8차원 센서 데이터 (5개 Flex + 3개 IMU)
 - **시퀀스 길이**: 300 (패딩/자르기 적용)
 - **출력**: 24개 클래스 확률 분포
 
 ### 핵심 구성 요소
-1. **RegularizedModel**: 메인 분류 모델
+1. **RGRU**: 메인 분류 모델
 2. **ClassDiscriminator**: ㄹ/ㅕ 후처리 필터 (Random Forest)
 3. **데이터 전처리**: 정규화 및 시퀀스 패딩
 4. **실시간 추론**: 배치 및 단일 파일 처리
@@ -120,9 +120,9 @@ KLP-SignGlove-Clean/
 
 ## 🔧 모델 아키텍처
 
-### RegularizedModel
+### RGRU
 ```python
-class RegularizedModel(nn.Module):
+class RGRU(nn.Module):
     def __init__(self, input_size=8, hidden_size=96, num_classes=24, dropout=0.5):
         # 입력 정규화
         self.input_norm = nn.LayerNorm(input_size)
@@ -208,7 +208,7 @@ class RegularizedModel(nn.Module):
 
 ### 모델 로딩
 - 체크포인트 키: `model_state_dict`
-- 모델 타입: `RegularizedModel`
+- 모델 타입: `RGRU`
 - 입력 형태: `(batch_size, sequence_length, features)`
 
 ## 🛠️ 문제 해결

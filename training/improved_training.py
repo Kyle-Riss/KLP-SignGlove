@@ -23,12 +23,12 @@ warnings.filterwarnings('ignore')
 
 # 모델 경로 추가
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
-from improved_model_architecture import ImprovedSGRU, AttentionLSTM, RegularizedModel, create_model_ensemble
+from improved_model_architecture import ImprovedSGRU, AttentionLSTM, RGRU, create_model_ensemble
 
 class ImprovedTrainingSystem:
     """개선된 학습 시스템"""
     
-    def __init__(self, model_type='RegularizedModel', device=None):
+    def __init__(self, model_type='RGRU', device=None):
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model_type = model_type
         self.class_names = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
@@ -56,13 +56,13 @@ class ImprovedTrainingSystem:
             return ImprovedSGRU(input_size=8, hidden_size=64, num_classes=24, dropout=0.3)
         elif self.model_type == 'AttentionLSTM':
             return AttentionLSTM(input_size=8, hidden_size=128, num_classes=24, dropout=0.4)
-        elif self.model_type == 'RegularizedModel':
-            return RegularizedModel(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
+        elif self.model_type == 'RGRU':
+            return RGRU(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
         elif self.model_type == 'Ensemble':
             models = [
                 ImprovedSGRU(input_size=8, hidden_size=64, num_classes=24, dropout=0.3),
                 AttentionLSTM(input_size=8, hidden_size=128, num_classes=24, dropout=0.4),
-                RegularizedModel(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
+                RGRU(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
             ]
             return create_model_ensemble(models, weights=[0.4, 0.3, 0.3])
         else:
@@ -370,7 +370,7 @@ def main():
     print('=' * 60)
     
     # 학습 시스템 초기화
-    training_system = ImprovedTrainingSystem(model_type='RegularizedModel')
+    training_system = ImprovedTrainingSystem(model_type='RGRU')
     
     # 데이터 로드
     data = training_system.load_and_preprocess_data('../real_data_filtered')

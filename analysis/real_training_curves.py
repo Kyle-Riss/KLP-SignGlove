@@ -30,7 +30,7 @@ class RealTrainingCurveGenerator:
         
         print('📊 실제 학습 곡선 생성기 초기화 완료')
     
-    def load_real_training_history(self, model_path='../models/improved_regularized_model.pth'):
+    def load_real_training_history(self, model_path='../models/improved_rgru_model.pth'):
         """실제 학습 히스토리 로드"""
         try:
             checkpoint = torch.load(model_path, map_location='cpu')
@@ -50,7 +50,7 @@ class RealTrainingCurveGenerator:
     def plot_real_training_curves(self, history, save_path='real_training_curves.png'):
         """실제 학습 곡선 플롯"""
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
-        fig.suptitle('Real SignGlove Model Training Curves (Improved RegularizedModel)', fontsize=16, fontweight='bold')
+        fig.suptitle('Real SignGlove Model Training Curves (Improved RGRU)', fontsize=16, fontweight='bold')
         
         epochs = history['epochs']
         
@@ -116,7 +116,7 @@ class RealTrainingCurveGenerator:
     def plot_detailed_real_analysis(self, history, save_path='detailed_real_analysis.png'):
         """실제 상세 분석"""
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-        fig.suptitle('Detailed Real Training Analysis (Improved RegularizedModel)', fontsize=16, fontweight='bold')
+        fig.suptitle('Detailed Real Training Analysis (Improved RGRU)', fontsize=16, fontweight='bold')
         
         epochs = history['epochs']
         
@@ -271,7 +271,7 @@ class RealTrainingCurveGenerator:
         """실제 학습 보고서 생성"""
         report = []
         report.append("=" * 70)
-        report.append("REAL SIGNGLOVE MODEL TRAINING REPORT (Improved RegularizedModel)")
+        report.append("REAL SIGNGLOVE MODEL TRAINING REPORT (Improved RGRU)")
         report.append("=" * 70)
         report.append("")
         
@@ -389,7 +389,7 @@ def main():
     generator = RealTrainingCurveGenerator()
     
     # 실제 학습 히스토리 로드
-    history = generator.load_real_training_history('../models/improved_regularized_model.pth')
+            history = generator.load_real_training_history('../models/improved_rgru_model.pth')
     
     if history is None:
         print('❌ 실제 학습 히스토리를 로드할 수 없습니다.')

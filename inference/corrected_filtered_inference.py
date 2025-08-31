@@ -20,7 +20,7 @@ warnings.filterwarnings('ignore')
 # 개선된 모델 아키텍처 import
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
-from improved_model_architecture import RegularizedModel
+from improved_model_architecture import RGRU
 from class_discriminator import ClassDiscriminator
 
 class CorrectedFilteredInference:
@@ -40,18 +40,18 @@ class CorrectedFilteredInference:
         self.discriminator = self._load_discriminator()
         
         print('✅ 수정된 정규화된 데이터 추론 시스템 초기화 완료')
-        print(f'  - 개선된 모델: RegularizedModel')
+        print(f'  - 개선된 모델: RGRU')
         print(f'  - 차별화기: ㄹ/ㅕ 구분')
         print(f'  - 디바이스: {self.device}')
     
-    def _load_corrected_model(self, model_path='../models/improved_regularized_model.pth'):
+    def _load_corrected_model(self, model_path='../models/improved_rgru_model.pth'):
         """수정된 모델 로드"""
         try:
             # 체크포인트 로드
             checkpoint = torch.load(model_path, map_location=self.device)
             
             # 모델 초기화
-            model = RegularizedModel(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
+            model = RGRU(input_size=8, hidden_size=96, num_classes=24, dropout=0.5)
             
             # 모델 상태 로드
             model.load_state_dict(checkpoint['model_state_dict'])
