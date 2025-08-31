@@ -20,7 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# Virtual Environment
 venv/
 env/
 ENV/
@@ -38,35 +38,33 @@ Thumbs.db
 # Project specific
 *.pth
 *.h5
+*.csv
+*.json
 *.png
 *.jpg
 *.jpeg
-*.csv
-*.json
+*.gif
+*.pdf
 *.log
-*.tmp
-*.bak
+*.txt
 
-# Model files (too large for git)
-models/*.pth
-*.pth
+# Data directories
+real_data/
+real_data_filtered/
+test_data/
+models/
 
-# Results and analysis files
-*_results.json
-*_analysis.png
-*_test_results.json
+# Results
+results/
+outputs/
+logs/
 
-# Keep important config files
-!inference/config.json
-!*.md
-
-# Data files
-datasets/
-data/
+# Archive
+archive_old/
+archive_old_files/
 
 # Temporary files
 temp/
 tmp/
-
-# Poetry
-poetry.lock
+*.tmp
+*.temp

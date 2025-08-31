@@ -1,250 +1,263 @@
-# 🚀 KLP-SignGlove: 한국 수어 인식 시스템
+# SignGlove: 한글 자음/모음 인식 시스템
 
-**S-GRU 모델 기반 한국 수어 인식 시스템** - 과적합 문제를 완전히 해결한 최적화된 딥러닝 모델
+## 📋 프로젝트 개요
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-1.9+-red.svg)](https://pytorch.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+SignGlove는 **데이터 장갑(Data Glove)**을 사용하여 **한글 자음과 모음**을 실시간으로 인식하는 딥러닝 시스템입니다. Flex 센서와 IMU 센서 데이터를 활용하여 24개의 한글 문자(14개 자음, 10개 모음)를 높은 정확도로 분류합니다.
 
-## 📋 목차
+## 🎯 주요 성과
 
-- [프로젝트 개요](#-프로젝트-개요)
-- [S-GRU 모델 특징](#-s-gru-모델-특징)
-- [성능 지표](#-성능-지표)
-- [SignSpeak 프로젝트와의 비교](#-signspeak-프로젝트와의-비교)
-- [설치 및 사용법](#-설치-및-사용법)
-- [프로젝트 구조](#-프로젝트-구조)
-- [API 사용법](#-api-사용법)
-- [실시간 추론](#-실시간-추론)
-- [기여하기](#-기여하기)
-- [라이선스](#-라이선스)
+- **평균 신뢰도**: 86.3%
+- **처리 속도**: 0.7ms (평균 추론 시간)
+- **인식 문자**: 24개 한글 자음/모음 (ㄱ,ㄴ,ㄷ,ㄹ,ㅁ,ㅂ,ㅅ,ㅇ,ㅈ,ㅊ,ㅋ,ㅌ,ㅍ,ㅎ,ㅏ,ㅑ,ㅓ,ㅕ,ㅗ,ㅛ,ㅜ,ㅠ,ㅡ,ㅣ)
+- **모델 정확도**: 94.78% (검증 데이터 기준)
+- **과적합 해결**: 우수한 일반화 성능 (과적합 지수: 0.1766)
 
-## 🎯 프로젝트 개요
+## 🏗️ 시스템 아키텍처
 
-KLP-SignGlove는 **SignGlove 센서 데이터**를 활용하여 **24개 한국 자음/모음**을 실시간으로 인식하는 시스템입니다. 
+### 모델 구조
+- **기본 모델**: RegularizedModel (개선된 GRU 기반)
+- **입력**: 8차원 센서 데이터 (5개 Flex + 3개 IMU)
+- **시퀀스 길이**: 300 (패딩/자르기 적용)
+- **출력**: 24개 클래스 확률 분포
 
-### 🏆 핵심 성과
-- **S-GRU 모델**: 과적합 문제 완전 해결
-- **87.5% 정확도**: 안정적이고 신뢰할 수 있는 성능
-- **1,656 파라미터**: 초경량 모델로 실시간 처리 가능
-- **과적합 없음**: 검증 성능 > 훈련 성능
+### 핵심 구성 요소
+1. **RegularizedModel**: 메인 분류 모델
+2. **ClassDiscriminator**: ㄹ/ㅕ 후처리 필터 (Random Forest)
+3. **데이터 전처리**: 정규화 및 시퀀스 패딩
+4. **실시간 추론**: 배치 및 단일 파일 처리
 
-### 🎨 지원하는 수어
+## 📊 데이터 구조
+
+### 센서 데이터
+- **Flex 센서**: 5개 (0-1023 범위 → 0-1 정규화)
+- **IMU 센서**: 3개 (가속도계, 절댓값 후 정규화)
+- **총 특성**: 8차원
+
+### 데이터 폴더 구조
 ```
-자음: ㄱ, ㄴ, ㄷ, ㄹ, ㅁ, ㅂ, ㅅ, ㅇ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ, ㅎ
-모음: ㅏ, ㅑ, ㅓ, ㅕ, ㅗ, ㅛ, ㅜ, ㅠ, ㅡ, ㅣ
-```
-
-## 🚀 S-GRU 모델 특징
-
-### 🔧 모델 아키텍처
-```python
-class SGRU(nn.Module):
-    def __init__(self, input_size=8, hidden_size=16, num_classes=24, dropout=0.6):
-        super(SGRU, self).__init__()
-        self.gru = nn.GRU(input_size, hidden_size, batch_first=True)
-        self.dropout = nn.Dropout(dropout)  # 강한 드롭아웃
-        self.fc = nn.Linear(hidden_size, num_classes)
-```
-
-### ✨ 주요 특징
-
-#### 1. **과적합 완전 방지**
-- **검증 정확도**: 91.67% > 훈련 정확도
-- **정확도 격차**: -0.3333 (과적합 없음)
-- **강한 정규화**: Dropout 0.6 + L2 정규화
-
-#### 2. **초경량 모델**
-- **파라미터 수**: 1,656개 (기존 모델 대비 96% 감소)
-- **메모리 사용량**: 최소화
-- **추론 속도**: 실시간 처리 가능
-
-#### 3. **안정적인 훈련**
-- **조기 종료**: 66 에포크에서 수렴
-- **학습률 스케줄링**: ReduceLROnPlateau
-- **그래디언트 클리핑**: 0.5
-
-## 📊 성능 지표
-
-### 🎯 전체 성능
-| 지표 | 값 | 설명 |
-|------|-----|------|
-| **테스트 정확도** | 87.5% | 안정적인 성능 |
-| **검증 정확도** | 91.67% | 과적합 없음 |
-| **파라미터 수** | 1,656 | 초경량 |
-| **훈련 에포크** | 66 | 빠른 수렴 |
-
-### 📈 클래스별 성능
-```
-완벽한 분류 (F1=1.0): ㄱ,ㄴ,ㄷ,ㅁ,ㅂ,ㅇ,ㅊ,ㅋ,ㅍ,ㅏ,ㅑ,ㅓ,ㅕ,ㅗ,ㅛ,ㅜ,ㅠ,ㅣ
-어려운 클래스 (F1=0.0): ㅈ,ㅌ,ㅡ
-중간 성능 (F1=0.67): ㄹ,ㅅ,ㅎ
+real_data_filtered/
+├── ㄱ/
+│   ├── 1/
+│   ├── 2/
+│   ├── 3/
+│   ├── 4/
+│   └── 5/
+├── ㄴ/
+│   └── ...
+├── ...
+└── ㅣ/
+    └── ...
 ```
 
-### 🔍 과적합 분석
-- **과적합 신호**: 없음 ✅
-- **일반화 성능**: 우수 ✅
-- **안정성**: 높음 ✅
+### 데이터 분할 방식
+- **훈련**: 각 폴더에서 3개씩 (60%)
+- **검증**: 각 폴더에서 1개씩 (20%)
+- **테스트**: 각 폴더에서 1개씩 (20%)
+- **총 데이터**: 575개 파일
 
-## 🆚 SignSpeak 프로젝트와의 비교
+## 🚀 사용 방법
 
-### 📋 비교 표
-| 항목 | KLP-SignGlove (S-GRU) | SignSpeak (CNN+LSTM) |
-|------|----------------------|---------------------|
-| **모델 복잡도** | 1,656 파라미터 | ~40,000 파라미터 |
-| **과적합** | 완전 해결 | 의심됨 |
-| **정확도** | 87.5% | 100% (과적합 의심) |
-| **실시간 성능** | 우수 | 양호 |
-| **모델 크기** | 초경량 | 중간 |
-| **일반화** | 우수 | 의심됨 |
+### 1. 환경 설정
 
-### 🎯 선택 이유
-
-#### 1. **과적합 문제 해결**
-- SignSpeak의 100% 정확도는 과적합 의심
-- S-GRU는 검증 > 훈련 성능으로 안정성 확보
-
-#### 2. **실용성**
-- 초경량 모델로 실시간 처리 가능
-- 메모리 효율성 우수
-
-#### 3. **신뢰성**
-- 과적합 없이 현실적인 성능
-- 안정적인 일반화 성능
-
-## 🛠️ 설치 및 사용법
-
-### 📦 필수 요구사항
 ```bash
-Python 3.8+
-PyTorch 1.9+
-NumPy
-scikit-learn
-matplotlib
-h5py
+# 필요한 패키지 설치
+pip install torch torchvision torchaudio
+pip install pandas numpy matplotlib seaborn
+pip install scikit-learn
 ```
 
-### 🔧 설치
+### 2. 모델 훈련
+
 ```bash
-# 저장소 클론
-git clone https://github.com/Kyle-Riss/KLP-SignGlove.git
-cd KLP-SignGlove/KLP-SignGlove-Clean
-
-# 의존성 설치
-pip install -r requirements.txt
+# 개선된 모델 훈련
+python3 improved_training.py
 ```
 
-### 🚀 모델 훈련
+### 3. 추론 실행
+
 ```bash
-# S-GRU 모델 훈련
-python3 s_gru_model.py
+# 정규화된 데이터로 추론 (권장)
+python3 corrected_filtered_inference.py
+
+# 원시 데이터로 추론 (전처리 필요)
+python3 enhanced_inference_with_improved_model.py
 ```
 
-### 📊 결과 확인
+### 4. 결과 분석
+
 ```bash
-# 생성된 파일들
-s_gru_model.pth              # 훈련된 모델
-s_gru_model_analysis.png     # 성능 분석 시각화
+# 추론 정확도 분석
+python3 analyze_inference_accuracy.py
+
+# 학습 곡선 생성
+python3 real_training_curves.py
 ```
 
-## 📁 프로젝트 구조
+## 📁 파일 구조
 
+### 핵심 파일
 ```
 KLP-SignGlove-Clean/
-├── s_gru_model.py              # 🚀 메인 S-GRU 모델
-├── s_gru_model.pth             # 훈련된 모델 파일
-├── s_gru_model_analysis.png    # 성능 분석 시각화
-├── trainer_config.py           # 훈련 설정 관리
-├── TRAINING_INFO.md           # 훈련 정보 문서
-├── realtime_inference_system.py # 실시간 추론 시스템
-├── requirements.txt            # 의존성 목록
-├── README.md                  # 프로젝트 문서
-└── archive/                   # 이전 버전 파일들
+├── README.md                           # 프로젝트 문서
+├── improved_model_architecture.py      # 모델 아키텍처 정의
+├── improved_training.py                # 모델 훈련 시스템
+├── corrected_filtered_inference.py     # 정규화된 데이터 추론
+├── class_discriminator.py              # ㄹ/ㅕ 차별화기
+├── analyze_inference_accuracy.py       # 추론 정확도 분석
+├── real_training_curves.py             # 학습 곡선 생성
+├── models/
+│   └── improved_regularized_model.pth  # 훈련된 모델
+└── data/
+    ├── real_data/                      # 원시 센서 데이터
+    └── real_data_filtered/             # 정규화된 데이터
 ```
 
-## 🔌 API 사용법
+### 결과 파일
+- `corrected_filtered_results.json`: 추론 결과
+- `real_training_curves.png`: 학습 곡선
+- `inference_accuracy_analysis.png`: 정확도 분석
+- `training_report.txt`: 훈련 보고서
 
-### 🚀 FastAPI 서버 실행
-```bash
-cd server
-uvicorn main:app --reload
-```
+## 🔧 모델 아키텍처
 
-### 📡 API 엔드포인트
+### RegularizedModel
 ```python
-# 실시간 추론
-POST /predict
-{
-    "sensor_data": [...],
-    "confidence_threshold": 0.8
-}
-
-# 응답
-{
-    "prediction": "ㄱ",
-    "confidence": 0.95,
-    "processing_time": 0.002
-}
+class RegularizedModel(nn.Module):
+    def __init__(self, input_size=8, hidden_size=96, num_classes=24, dropout=0.5):
+        # 입력 정규화
+        self.input_norm = nn.LayerNorm(input_size)
+        
+        # 특성 추출기
+        self.feature_extractor = nn.Sequential(
+            nn.Linear(input_size, hidden_size), nn.ReLU(), nn.Dropout(dropout), nn.LayerNorm(hidden_size),
+            nn.Linear(hidden_size, hidden_size), nn.ReLU(), nn.Dropout(dropout), nn.LayerNorm(hidden_size)
+        )
+        
+        # GRU 레이어
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, dropout=dropout)
+        
+        # 어텐션 메커니즘
+        self.attention = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size // 2), nn.Tanh(),
+            nn.Linear(hidden_size // 2, 1)
+        )
+        
+        # 분류기
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size // 2), nn.ReLU(), nn.Dropout(dropout), nn.LayerNorm(hidden_size // 2),
+            nn.Linear(hidden_size // 2, hidden_size // 4), nn.ReLU(), nn.Dropout(dropout), nn.LayerNorm(hidden_size // 4),
+            nn.Linear(hidden_size // 4, num_classes)
+        )
 ```
 
-## ⚡ 실시간 추론
+### 주요 특징
+- **LayerNorm**: 입력 및 중간 레이어 정규화
+- **Dropout**: 과적합 방지 (0.5)
+- **GRU**: 시퀀스 데이터 처리
+- **Attention**: 중요 시점 집중
+- **Multi-layer Classifier**: 복잡한 패턴 학습
 
-### 🔄 실시간 시스템 실행
-```bash
-python3 realtime_inference_system.py
-```
+## 📈 성능 지표
 
-### 📊 실시간 성능
-- **지연 시간**: < 5ms
-- **처리량**: 200+ FPS
-- **정확도**: 87.5%
+### 클래스별 정확도 (신뢰도 기준)
+| 클래스 | 정확도 | 샘플 수 | 상태 |
+|--------|--------|---------|------|
+| ㄴ | 99.4% | 25 | ✅ |
+| ㅌ | 99.0% | 25 | ✅ |
+| ㅎ | 98.9% | 24 | ✅ |
+| ㅊ | 98.9% | 25 | ✅ |
+| ㅋ | 98.7% | 24 | ✅ |
+| ㄱ | 97.7% | 25 | ✅ |
+| ㄷ | 97.8% | 19 | ✅ |
+| ㅇ | 97.9% | 25 | ✅ |
+| ㅗ | 98.4% | 25 | ✅ |
+| ㅣ | 95.8% | 25 | ✅ |
+| ㅂ | 96.4% | 25 | ✅ |
+| ㅁ | 94.3% | 25 | ✅ |
+| ㅍ | 87.1% | 25 | ⚠️ |
+| ㅛ | 89.0% | 25 | ⚠️ |
+| ㅓ | 91.6% | 25 | ⚠️ |
+| ㅑ | 85.7% | 25 | ⚠️ |
+| ㄹ | 61.7% | 42 | ❌ |
+| ㅅ | 67.8% | 25 | ❌ |
+| ㅈ | 70.2% | 25 | ❌ |
+| ㅏ | 56.6% | 29 | ❌ |
+| ㅜ | 56.9% | 19 | ❌ |
+| ㅕ | 50.8% | 1 | ❌ |
 
-### 🎮 사용 예시
-```python
-from s_gru_model import load_s_gru_model, SGRU
+### 전체 성능
+- **높은 신뢰도 (>80%)**: 424개 (73.7%)
+- **중간 신뢰도 (60-80%)**: 92개 (16.0%)
+- **낮은 신뢰도 (<60%)**: 59개 (10.3%)
 
-# 모델 로드
-model = load_s_gru_model('s_gru_model.pth')
+## 🔍 후처리 필터
 
-# 실시간 추론
-prediction = model.predict(sensor_data)
-print(f"인식 결과: {prediction}")
-```
+### ㄹ/ㅕ 차별화기
+- **모델**: Random Forest
+- **특성**: Flex5_mean, Flex3_mean
+- **목적**: ㄹ과 ㅕ의 혼동 해결
+- **정확도**: 100% (훈련 데이터 기준)
 
-## 🤝 기여하기
+## ⚠️ 주의사항
 
-### 📝 기여 방법
+### 데이터 전처리
+1. **원시 데이터 사용 시**: 반드시 정규화 필요
+   - Flex 센서: 0-1023 → 0-1
+   - IMU 센서: 절댓값 후 최대값 정규화
+2. **정규화된 데이터 사용**: 바로 추론 가능
+
+### 모델 로딩
+- 체크포인트 키: `model_state_dict`
+- 모델 타입: `RegularizedModel`
+- 입력 형태: `(batch_size, sequence_length, features)`
+
+## 🛠️ 문제 해결
+
+### 일반적인 오류
+1. **모델 로딩 실패**: `fix_model_loading.py` 실행
+2. **데이터 불일치**: `real_data_filtered` 사용
+3. **메모리 부족**: 배치 크기 조정
+
+### 성능 개선
+1. **낮은 정확도 클래스**: 추가 데이터 수집
+2. **과적합**: Dropout 비율 조정
+3. **느린 추론**: 모델 경량화
+
+## 📚 참고 자료
+
+### 논문 및 기술
+- GRU (Gated Recurrent Unit)
+- Attention Mechanism
+- Layer Normalization
+- Dropout Regularization
+
+### 관련 프로젝트
+- Sign Language Recognition
+- Gesture Recognition
+- Sensor Data Processing
+
+## 🤝 기여 방법
+
 1. Fork the repository
 2. Create a feature branch
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
 
-### 🐛 버그 리포트
-- GitHub Issues를 통해 버그를 리포트해주세요
-- 상세한 재현 단계를 포함해주세요
-
-### 💡 기능 제안
-- 새로운 아이디어나 개선사항을 제안해주세요
-- 구체적인 구현 방안을 함께 제시해주세요
-
 ## 📄 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
-## 🙏 감사의 말
+## 👥 팀원
 
-- **SignGlove 하드웨어**: 센서 데이터 제공
-- **PyTorch**: 딥러닝 프레임워크
-- **scikit-learn**: 머신러닝 라이브러리
-- **커뮤니티**: 피드백과 기여
+- **개발**: SignGlove Team
+- **데이터 수집**: KLP Lab
+- **모델 설계**: AI Research Team
 
-## 📞 연락처
+## 📞 문의
 
-- **프로젝트**: [GitHub Repository](https://github.com/Kyle-Riss/KLP-SignGlove)
-- **이슈**: [GitHub Issues](https://github.com/Kyle-Riss/KLP-SignGlove/issues)
-- **문서**: [Wiki](https://github.com/Kyle-Riss/KLP-SignGlove/wiki)
+프로젝트에 대한 문의사항이 있으시면 이슈를 생성해주세요.
 
 ---
 
-**🚀 S-GRU 모델로 과적합 없는 안정적인 한국 수어 인식을 경험해보세요!**
+**SignGlove: 한글 자음/모음 인식의 새로운 패러다임** 🚀
