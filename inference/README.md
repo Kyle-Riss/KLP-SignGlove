@@ -29,3 +29,6 @@ python3 corrected_filtered_inference.py
 - **평균 신뢰도**: 86.3%
 - **처리 속도**: 0.7ms
 - **인식 문자**: 24개 한글 자음/모음
+
+
+

@@ -389,7 +389,7 @@ def main():
     generator = RealTrainingCurveGenerator()
     
     # 실제 학습 히스토리 로드
-            history = generator.load_real_training_history('../models/improved_rgru_model.pth')
+    history = generator.load_real_training_history('../models/improved_rgru_model.pth')
     
     if history is None:
         print('❌ 실제 학습 히스토리를 로드할 수 없습니다.')
