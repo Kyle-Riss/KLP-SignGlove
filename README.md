@@ -22,7 +22,7 @@ SignGlove는 **데이터 장갑(Data Glove)**을 사용하여 **한글 자음과
 
 ### 핵심 구성 요소
 1. **RGRU**: 메인 분류 모델
-2. **ClassDiscriminator**: ㄹ/ㅕ 후처리 필터 (Random Forest)
+2. **ClassDiscriminator**: ㄹ/ㅕ 후처리 필터 (Random Forest) -> 데이터 보완 시 Post filter는 수정 가능합니다
 3. **데이터 전처리**: 정규화 및 시퀀스 패딩
 4. **실시간 추론**: 배치 및 단일 파일 처리
 
