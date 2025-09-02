@@ -250,9 +250,9 @@ class RGRU(nn.Module):
 
 ## 👥 팀원
 
-- **개발**: SignGlove Team
-- **데이터 수집**: KLP Lab
-- **모델 설계**: AI Research Team
+프로젝트 관리자: minuum
+KLP-SignGlove 팀: Kyle-Riss
+SignGlove_HW 팀: KNDG01001
 
 ## 📞 문의
 
