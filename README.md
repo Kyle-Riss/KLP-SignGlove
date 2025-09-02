@@ -250,9 +250,9 @@ class RGRU(nn.Module):
 
 ## 👥 팀원
 
-프로젝트 관리자: minuum
-KLP-SignGlove 팀: Kyle-Riss
-SignGlove_HW 팀: KNDG01001
+**프로젝트 관리자: minuum
+**KLP-SignGlove 팀: Kyle-Riss
+**SignGlove_HW 팀: KNDG01001
 
 ## 📞 문의
 
