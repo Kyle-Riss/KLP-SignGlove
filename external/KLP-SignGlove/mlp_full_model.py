@@ -240,3 +240,4 @@ for i in range(min(10, len(dataset.all_classes))):
 
 print('\n✅ 전체 클래스 MLP 모델 훈련 완료!')
 
+
