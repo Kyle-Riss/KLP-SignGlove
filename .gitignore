@@ -1,0 +1,14 @@
+*.env
+/src/experiments/lightning_logs/*
+/src/experiments/wandb/*
+/src/experiments/SignSpeak/*
+/VENV/*
+*.pyc
+test.*
+/src/experiments/experiment.sh
+/old/*
+*.ipynb
+/lightning_logs/*
+/src/experiments/server.py
+/src/experiments/client.py
+/venv/* 
