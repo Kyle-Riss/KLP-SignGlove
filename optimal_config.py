@@ -7,6 +7,7 @@
 - learning_rate: 0.0003
 - batch_size: 16
 - weight_decay: 0.001
+- resampling_method: "padding" (ASL-Sign-Research 방식)
 """
 OPTIMAL_CONFIG = {
     'hidden_size': 48,

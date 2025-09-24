@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # KLP-SignGlove: 한국어 수화 인식 프로젝트
 
 한국어 수화 자모(자음, 모음) 인식을 위한 센서 장갑 기반 실시간 분류 시스템입니다.
@@ -21,14 +22,12 @@
 - **센서 채널**: 8개 (flex1-5 + pitch, roll, yaw)
 - **샘플링 주파수**: 32.1 Hz
 - **데이터 분할**: 훈련 59.9%, 검증 20.1%, 테스트 20.1%
-- **전처리 방식**: ASL-Sign-Research 방식 패딩 (constant_values=1.0)
 
 ### 확장 예정 데이터셋 (3000개)
 - **총 샘플 수**: 3000개 (5배 증가)
 - **클래스 수**: 24개 (동일)
 - **타임스텝**: 100개 (동일)
 - **센서 채널**: 8개 (동일)
-- **전처리 방식**: ASL-Sign-Research 방식 패딩 (동일)
 - **예상 성능**: 98.5% (현재 97.5% 대비 +1.0% 향상)
 
 ### 클래스 목록
@@ -98,7 +97,7 @@ KLP-SignGlove-Clean/
 ## 🚀 시작하기
 
 ### 1. 환경 설정
-    ```bash
+```bash
 # 저장소 클론
 git clone <repository-url>
 cd KLP-SignGlove-Clean
@@ -113,7 +112,7 @@ SignGlove-DataAnalysis 폴더를 프로젝트 루트에 배치하세요.
 ### 3. 모델 훈련
 
 #### 현재 데이터셋 (598개) 훈련
-    ```bash
+```bash
 # 현재 최적 모델 훈련
 python train_optimal_model.py
 ```
@@ -217,3 +216,100 @@ with torch.no_grad():
 ## 📞 문의
 
 프로젝트에 대한 문의사항이 있으시면 이슈를 생성해 주세요.
+=======
+# SignSpeak: Open-Source Time Series Classification for ASL Translation
+
+This repository contains the code and dataset for the paper "SignSpeak: Time Series Classification for ASL Prediction." 
+
+**[Paper](https://arxiv.org/abs/2407.12020)**
+
+## Overview
+
+**Abstract**: The lack of fluency in sign language remains a barrier to seamless communication for hearing and speech-impaired communities. In this work, we propose a low-cost, real-time ASL-to-speech translation glove and an exhaustive training dataset of sign language patterns. We then benchmarked this dataset with supervised learning models, such as LSTMs, GRUs and Transformers, where our best model achieved 92\% accuracy. The SignSpeak dataset has 7200 samples encompassing 36 classes (A-Z, 1-10) and aims to capture realistic signing patterns by using five low-cost flex sensors to measure finger positions at each time step at 36 Hz. Our open-source dataset, models and glove designs, provide an accurate and efficient ASL translator while maintaining cost-effectiveness, establishing a framework for future work to build on.  
+
+## Data Glove
+
+The glove uses
+- **Flex Sensors**: Five flex sensors are integrated into the glove, one for each finger. These sensors measure the bend of each finger.
+- **Microcontroller**: An Arudino MEGA 2560 processes the signals from the flex sensors and sends the data verial serial ouput to a database.
+
+All code for glove setup and data collection can be found at ```src/dataCollection```
+
+Below is the schematic and completed glove.
+
+<p align="center">
+  <img src="images/Schematic.png" alt="Data Glove Diagram 1", height="600">
+  <img src="images/Gloves.png" alt="Data Glove Diagram 2", height="400">
+</div>
+
+## Key Features
+
+- **Open-Source Dataset**: The SignSpeak dataset comprises 7200 samples covering 36 classes (A-Z, 1-10), collected at 36 Hz using five flex sensors.
+- **High Accuracy**: Achieves 92% categorical accuracy using state-of-the-art models such as LSTMs, GRUs, and Transformers.
+- **Real-World Applicability**: Designed to be a cost-effective and resource-efficient solution for seamless communication for the hearing and speech-impaired communities.
+
+## Models
+
+The repository includes implementations and benchmarks for various models:
+- Stacked LSTM
+- Stacked GRU
+- Transformer-based models
+
+All models can be found in ``` src/models/ ```
+
+## Getting Started
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/adityamakkar000/ASL-Sign-Research.git
+   ```
+2. **Download the Dataset**
+
+    Download the dataset from this [Harvard Dataverse](https://doi.org/10.7910/DVN/ODY7GH) and place it in the ```src/experiments/data``` directory naming it ```data.csv```.
+
+3. **Install Dependencies**
+
+    ```bash
+    pip install -r req.txt
+    ```
+4. **Run the model**
+     Run the models using the following bash command inside of the ```src/experiments/``` or use the training scripts found in the directory
+    ```bash
+    python LightningTrain.py \
+          -layers $layers \
+          -model $model \
+          -hidden_size $hidden_size \
+          -lr $lr \
+          -time_steps $time_steps \
+          -batch_size $batch_size \
+          -epochs $epochs \
+          $dense_layer_arg \
+          -dense_size $dense_size \
+    ```
+
+## Contact
+
+For any queries, please contact:
+
+    Aditya Makkar: aditya.makkar@uwaterloo.ca
+    Divya Makkar: divya.makkar@uwaterloo.ca
+    Aarav Patel: aarav.patel@uwaterloo.ca
+
+## Citation 
+
+```
+@misc{makkar2024signspeakopensourcetimeseries,
+      title={SignSpeak: Open-Source Time Series Classification for ASL Translation}, 
+      author={Aditya Makkar and Divya Makkar and Aarav Patel and Liam Hebert},
+      year={2024},
+      eprint={2407.12020},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2407.12020}, 
+}
+```
+
+## Acknowledgement
+
+We thank University of Waterloo PhD Liam Hebert for providing invaluable guidance and unwavering support throughout the course of SignSpeak. 
+>>>>>>> 969e3a630e7899de120f04d29849911b26d6156e

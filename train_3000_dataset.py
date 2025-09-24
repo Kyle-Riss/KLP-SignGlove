@@ -202,3 +202,4 @@ if __name__ == "__main__":
         print(f"❌ 훈련 중 오류 발생: {e}")
         import traceback
         traceback.print_exc()
+

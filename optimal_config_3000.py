@@ -2,6 +2,7 @@
 3000개 데이터셋에 최적화된 모델 설정
 - 기존 598개 → 3000개 (5배 증가)
 - 더 큰 모델과 적절한 정규화 필요
+- resampling_method: "padding" (ASL-Sign-Research 방식)
 """
 import torch
 
@@ -121,3 +122,4 @@ def print_config_comparison():
 
 if __name__ == "__main__":
     print_config_comparison()
+

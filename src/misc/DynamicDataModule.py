@@ -50,7 +50,7 @@ class DynamicDataModule(L.LightningDataModule):
         test_size: float = 0.2,
         val_size: float = 0.2,
         use_test_split: bool = True,
-        resampling_method: str = "interpolation",  # "interpolation" or "padding"
+        resampling_method: str = "padding",  # "interpolation" or "padding"
     ):
         super().__init__()
         
@@ -148,21 +148,28 @@ class DynamicDataModule(L.LightningDataModule):
         else:
             # Pad or interpolate to target length
             if self.resampling_method == "interpolation":
-                # Linear interpolation
-                from scipy.interpolate import interp1d
-                x_old = np.linspace(0, 1, current_length)
-                x_new = np.linspace(0, 1, self.time_steps)
-                
-                interpolated_data = np.zeros((self.time_steps, self.n_channels))
-                for i in range(self.n_channels):
-                    f = interp1d(x_old, data[:, i], kind='linear', fill_value='extrapolate')
-                    interpolated_data[:, i] = f(x_new)
-                
-                return interpolated_data
-            else:
-                # Padding
+                # Linear interpolation (requires scipy)
+                try:
+                    from scipy.interpolate import interp1d
+                    x_old = np.linspace(0, 1, current_length)
+                    x_new = np.linspace(0, 1, self.time_steps)
+                    
+                    interpolated_data = np.zeros((self.time_steps, self.n_channels))
+                    for i in range(self.n_channels):
+                        f = interp1d(x_old, data[:, i], kind='linear', fill_value='extrapolate')
+                        interpolated_data[:, i] = f(x_new)
+                    
+                    return interpolated_data
+                except ImportError:
+                    print("Warning: scipy not available, falling back to padding")
+                    # Fallback to padding if scipy is not available
+                    pass
+            
+            # Default to ASL-style padding
+            if True:  # Always use padding now (default behavior)
+                # ASL-style Padding (constant_values=1.0)
                 padding_length = self.time_steps - current_length
-                padded_data = np.pad(data, ((0, padding_length), (0, 0)), mode='constant', constant_values=0)
+                padded_data = np.pad(data, ((0, padding_length), (0, 0)), mode='constant', constant_values=1.0)
                 return padded_data
 
     def preprocess_data(self) -> Tuple[np.ndarray, np.ndarray, List[str]]:
