@@ -1,106 +1,99 @@
 # KLP-SignGlove: 한국어 수화 인식 프로젝트
 
-한국어 수화 자모(자음, 모음) 인식을 위한 센서 장갑 기반 실시간 분류 시스템입니다.
+한국어 수화 자모(자음, 모음) 및 숫자 인식을 위한 센서 장갑 기반 실시간 분류 시스템입니다.
 
 ## 🎯 프로젝트 개요
 
-**목표**: 한국어 수화 자모 24개 클래스(자음 14개 + 모음 10개)를 실시간으로 인식하는 시스템 개발
+**목표**: 한국어 수화 자모 34개 클래스(자음 14개 + 모음 10개 + 숫자 10개)를 실시간으로 인식하는 시스템 개발
 
-**성과**: 
-- **현재 성능**: 97.5% 정확도 (598개 샘플)
-- **목표 성능**: 98.5% 정확도 (3000개 샘플 예정)
-- **데이터셋**: 598개 → 3000개 확장 예정
+**특징**: 
+- **멀티스케일 CNN + GRU 하이브리드 모델**: 다양한 시간 스케일의 패턴을 동시에 학습
+- **4가지 모델 변형**: CNN-GRU, CNN-StackedGRU, MS-GRU, MS-StackedGRU
+- **모듈화된 구조**: 각 모델 타입별로 분리된 파일 구조
 - **실시간 추론**: 경량 모델로 실시간 처리 가능
 
 ## 📊 데이터셋 정보
 
-### 현재 데이터셋 (598개)
-- **총 샘플 수**: 598개
-- **클래스 수**: 24개 (자음 14개 + 모음 10개)
-- **타임스텝**: 100개 (3.12초 지속시간)
+### SignGlove (우리) 데이터셋
+- **총 샘플 수**: 7,200개
+- **클래스 수**: 34개 (자음 14개 + 모음 10개 + 숫자 10개)
+- **타임스텝**: 87개
 - **센서 채널**: 8개 (flex1-5 + pitch, roll, yaw)
 - **샘플링 주파수**: 32.1 Hz
-- **데이터 분할**: 훈련 59.9%, 검증 20.1%, 테스트 20.1%
-- **전처리 방식**: ASL-Sign-Research 방식 패딩 (constant_values=1.0)
-
-### 확장 예정 데이터셋 (3000개)
-- **총 샘플 수**: 3000개 (5배 증가)
-- **클래스 수**: 24개 (동일)
-- **타임스텝**: 100개 (동일)
-- **센서 채널**: 8개 (동일)
-- **전처리 방식**: ASL-Sign-Research 방식 패딩 (동일)
-- **예상 성능**: 98.5% (현재 97.5% 대비 +1.0% 향상)
+- **데이터 분할**: 훈련 70%, 검증 15%, 테스트 15%
+- **전처리 방식**: 패딩/트렁케이션 + StandardScaler 정규화
 
 ### 클래스 목록
 - **자음 (14개)**: ㄱ, ㄴ, ㄷ, ㄹ, ㅁ, ㅂ, ㅅ, ㅇ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ, ㅎ
 - **모음 (10개)**: ㅏ, ㅑ, ㅓ, ㅕ, ㅗ, ㅛ, ㅜ, ㅠ, ㅡ, ㅣ
+- **숫자 (10개)**: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-## 🔧 최적 모델 설정
+## 🏗️ 모델 아키텍처
 
-### 현재 모델 (598개 데이터셋 - 97.5% 성능)
+### 1. CNN-GRU (Single-scale CNN + Single GRU)
 ```python
-{
-    'hidden_size': 48,
-    'num_layers': 1,
-    'dropout': 0.15,
-    'dense_size': 96,
-    'learning_rate': 0.0003,
-    'batch_size': 16,
-    'weight_decay': 0.001,
-    'max_epochs': 100,
-    'early_stopping_patience': 30
-}
+Conv1D(kernel=3) → BatchNorm → ReLU → MaxPool → Dropout
+         ↓
+Single GRU(64) → Dropout → Dense(128) → Dense(34)
 ```
 
-### 확장 모델 (3000개 데이터셋 - 예상 98.5% 성능)
+### 2. CNN-StackedGRU (Single-scale CNN + Stacked GRU)
 ```python
-{
-    'hidden_size': 64,        # 48 → 64 (더 큰 모델)
-    'num_layers': 2,          # 1 → 2 (더 깊은 네트워크)
-    'dropout': 0.2,           # 0.15 → 0.2 (과적합 방지)
-    'dense_size': 128,        # 96 → 128 (더 큰 Dense)
-    'learning_rate': 0.001,   # 0.0003 → 0.001 (더 큰 학습률)
-    'batch_size': 32,         # 16 → 32 (더 큰 배치)
-    'weight_decay': 0.0001,   # 0.001 → 0.0001 (약한 정규화)
-    'max_epochs': 150,        # 100 → 150 (더 많은 에포크)
-    'early_stopping_patience': 40  # 30 → 40 (더 긴 patience)
-}
+Conv1D(kernel=3) → BatchNorm → ReLU → MaxPool → Dropout
+         ↓
+GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(34)
 ```
 
-## 🏗️ 프로젝트 구조
+### 3. MS-GRU (Multi-scale CNN + Single GRU)
+```python
+Tower1(kernel=3) ┐
+Tower2(kernel=5) ├→ Concat → BatchNorm → ReLU → MaxPool → Dropout
+Tower3(kernel=7) ┘
+         ↓
+Single GRU(64) → Dropout → Dense(128) → Dense(34)
+```
+
+### 4. MS-StackedGRU (Multi-scale CNN + Stacked GRU)
+```python
+Tower1(kernel=3) ┐
+Tower2(kernel=5) ├→ Concat → BatchNorm → ReLU → MaxPool → Dropout
+Tower3(kernel=7) ┘
+         ↓
+GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(34)
+```
+
+## 📁 프로젝트 구조
 
 ```
 KLP-SignGlove-Clean/
 ├── src/
-│   ├── models/                 # 모델 구현
-│   │   ├── GRU.py             # 1층 GRU
-│   │   ├── LSTM.py            # 1층 LSTM
-│   │   ├── encoder.py         # Transformer Encoder
-│   │   ├── generalModels.py   # 공통 모델 클래스
-│   │   └── LightningModel.py  # PyTorch Lightning 기본 클래스
-│   ├── misc/
-│   │   └── DynamicDataModule.py  # 데이터 로더
-│   └── StackedGRUModel.py     # 최고 성능 모델
-├── best_model/
-│   ├── best_model.ckpt        # 최고 성능 모델 체크포인트
-│   └── results.json           # 성능 결과
-├── final_results/
-│   ├── results.json           # 최종 실험 결과
-│   └── project_summary.txt    # 프로젝트 요약
-├── optimal_config.py          # 현재 최적 하이퍼파라미터 설정
-├── optimal_config_3000.py     # 3000개 데이터셋용 설정
-├── train_optimal_model.py     # 현재 모델 훈련 스크립트
-├── train_3000_dataset.py      # 3000개 데이터셋용 훈련 스크립트
-├── requirements.txt           # 의존성 패키지
-└── README.md                  # 프로젝트 문서
+│   ├── models/                    # 모델 구현
+│   │   ├── MSCSGRUModels.py      # 4가지 CNN-GRU 변형 (메인)
+│   │   ├── GRUModels.py          # GRU 관련 모델들
+│   │   ├── LSTMModels.py         # LSTM 관련 모델들
+│   │   ├── EncoderModels.py      # Transformer/CNN 인코더들
+│   │   ├── generalModels.py      # 공통 모델 클래스
+│   │   └── LightningModel.py     # PyTorch Lightning 기본 클래스
+│   └── misc/
+│       └── DynamicDataModule.py  # 데이터 로더 및 전처리
+├── best_model/                   # 최고 성능 모델
+│   ├── best_model.ckpt
+│   └── results.json
+├── final_results/               # 최종 실험 결과
+│   ├── results.json
+│   └── project_summary.txt
+├── requirements.txt             # 의존성 패키지
+├── README.md                   # 프로젝트 문서
+├── README_our_version.md       # 상세 기술 문서
+└── LICENSE                     # MIT 라이선스
 ```
 
 ## 🚀 시작하기
 
 ### 1. 환경 설정
-    ```bash
+```bash
 # 저장소 클론
-git clone <repository-url>
+git clone https://github.com/Kyle-Riss/KLP-SignGlove.git
 cd KLP-SignGlove-Clean
 
 # 의존성 설치
@@ -108,88 +101,100 @@ pip install -r requirements.txt
 ```
 
 ### 2. 데이터 준비
-SignGlove-DataAnalysis 폴더를 프로젝트 루트에 배치하세요.
-
-### 3. 모델 훈련
-
-#### 현재 데이터셋 (598개) 훈련
-    ```bash
-# 현재 최적 모델 훈련
-python train_optimal_model.py
-```
-
-#### 확장 데이터셋 (3000개) 훈련
+SignGlove_HW 프로젝트의 unified 데이터셋을 사용합니다:
 ```bash
-# 3000개 데이터셋용 최적화 모델 훈련
-python train_3000_dataset.py
+git clone https://github.com/KNDG01001/SignGlove_HW.git
+# 데이터는 /home/billy/25-1kp/SignGlove_HW/datasets/unified/ 에 위치
 ```
 
-### 4. 모델 로드 및 추론
+### 3. 모델 테스트
 ```python
 import torch
-from src.StackedGRUModel import StackedGRULightning
-from optimal_config import OPTIMAL_CONFIG
+from src.models.MSCSGRUModels import CNNGRU, CNNStackedGRU, MSCGRU, MSCSGRU
 
-# 모델 로드
-model = StackedGRULightning.load_from_checkpoint('best_model/best_model.ckpt')
-model.eval()
+# 테스트 데이터
+batch_size, time_steps, input_channels = 4, 87, 8
+num_classes = 34
+x = torch.randn(batch_size, time_steps, input_channels)
+x_mask = torch.ones(batch_size, time_steps)
+y_targets = torch.randint(0, num_classes, (batch_size,))
 
-# 추론
-with torch.no_grad():
-    predictions = model(input_data)
+# 모델 선택 및 테스트
+model = MSCGRU(learning_rate=1e-3, input_size=8, hidden_size=64, classes=34)
+logits, loss = model(x, x_mask, y_targets)
+print(f"Output shape: {logits.shape}, Loss: {loss.item():.4f}")
 ```
 
-## 📈 성능 비교
+### 4. 데이터 로더 테스트
+```python
+from src.misc.DynamicDataModule import DynamicDataModule
 
-### 현재 성능 (598개 데이터셋)
-| 모델 | 테스트 정확도 | 특징 |
-|------|---------------|------|
-| **StackedGRU** | **97.5%** | 🥇 최고 성능 + 빠른 속도 |
-| GRU | 89.2% | 안정적 성능 + 매우 빠른 속도 |
-| LSTM | ~90% | 균형잡힌 성능 |
-| Encoder | ~94% | Transformer 기반 |
+# 데이터 모듈 초기화
+data_module = DynamicDataModule(
+    data_dir="/home/billy/25-1kp/SignGlove_HW/datasets/unified",
+    time_steps=87,
+    batch_size=32
+)
 
-### 예상 성능 (3000개 데이터셋)
-| 모델 | 예상 정확도 | 개선 요인 |
-|------|-------------|-----------|
-| **StackedGRU (확장)** | **98.5%** | 더 큰 모델 + 더 많은 데이터 |
-| GRU (확장) | ~92% | 더 큰 모델 + 더 많은 데이터 |
-| LSTM (확장) | ~94% | 더 큰 모델 + 더 많은 데이터 |
-| Encoder (확장) | ~96% | 더 큰 모델 + 더 많은 데이터 |
+# 데이터 로드
+data_module.setup(stage='fit')
+train_loader = data_module.train_dataloader()
+
+# 배치 확인
+for batch in train_loader:
+    print(f"Batch shape: {batch['measurement'].shape}")
+    print(f"Labels: {batch['label']}")
+    break
+```
+
+## 📈 모델 성능 비교
+
+### 초기 손실값 (무작위 초기화)
+| 모델 | 초기 손실 | 특징 |
+|------|-----------|------|
+| **CNN-GRU** | ~3.58 | 단순하고 빠름 |
+| **CNN-StackedGRU** | ~3.52 | 중간 복잡도 |
+| **MS-GRU** | ~3.58 | 멀티스케일 특징 추출 |
+| **MS-StackedGRU** | ~3.47 | 가장 높은 표현력 |
+
+### 모델 선택 가이드
+- **빠른 실험**: `CNNGRU` - 가장 단순하고 빠름
+- **균형잡힌 성능**: `MSCGRU` - 멀티스케일 + 단일 GRU
+- **최고 성능**: `MSCSGRU` - 멀티스케일 + 스택 GRU
+- **중간 복잡도**: `CNNStackedGRU` - 단일 CNN + 스택 GRU
 
 ## 🔬 기술적 특징
 
+### 멀티스케일 CNN
+- **3개 타워 병렬 처리**: kernel_size 3, 5, 7로 다양한 시간 스케일 패턴 추출
+- **미세 패턴 (kernel=3)**: 짧은 시간 동안의 센서값 변화
+- **중간 패턴 (kernel=5)**: 중간 시간 동안의 패턴
+- **거시 패턴 (kernel=7)**: 긴 시간에 걸친 전체적인 패턴
+
+### GRU 아키텍처
+- **단일 GRU**: 파라미터 수 적음, 빠른 학습
+- **스택 GRU**: 2층 구조로 복잡한 시간 의존성 학습
+
 ### 데이터 전처리
-- **타임스텝 정규화**: 가변 길이 → 100 타임스텝
+- **타임스텝 정규화**: 가변 길이 → 87 타임스텝
 - **스케일링**: StandardScaler 적용
-- **데이터 증강**: 시드 기반 재현 가능한 분할
-
-### 모델 아키텍처
-- **StackedGRU**: 2층 GRU + Dense 레이어
-- **드롭아웃**: 0.15 (과적합 방지)
-- **정규화**: Weight Decay 0.001
-
-### 훈련 전략
-- **옵티마이저**: AdamW
-- **스케줄러**: ReduceLROnPlateau
-- **조기 종료**: 30 에포크 patience
+- **층화 샘플링**: 클래스 비율 유지하며 분할
 
 ## 🎯 주요 성과
 
-✅ **성능 목표 초과 달성**: 70% → 97.5% (39% 초과)  
-✅ **데이터 로더 버그 수정**: 클래스 중복 문제 해결  
-✅ **하이퍼파라미터 최적화**: 체계적인 실험을 통한 최적 설정 도출  
+✅ **4가지 모델 변형 구현**: 다양한 복잡도와 성능 트레이드오프 제공  
+✅ **모듈화된 구조**: 각 모델 타입별로 분리된 파일 구조  
+✅ **새로운 데이터셋 지원**: SignGlove_HW unified 데이터셋 (7,200개 샘플, 34개 클래스)  
+✅ **멀티스케일 특징 추출**: 다양한 시간 스케일 패턴 동시 학습  
 ✅ **실시간 추론 준비**: 경량 모델로 실시간 처리 가능  
-✅ **SignGlove_HW 호환성**: 하드웨어 프로젝트와 완벽 연동  
 
 ## 🚀 향후 계획
 
 ### 단기 계획
-- [x] 현재 데이터셋 최적화 완료 (598개, 97.5%)
-- [ ] 3000개 데이터셋 훈련 및 검증
-- [ ] 확장 모델 성능 평가
+- [ ] 각 모델별 성능 평가 및 비교
+- [ ] 하이퍼파라미터 최적화
+- [ ] 과적합 방지 기법 적용
 - [ ] 실시간 추론 시스템 구축
-- [ ] 사용자 인터페이스 개발
 
 ### 장기 계획
 - [ ] 웹 기반 수화 통역 서비스
@@ -200,7 +205,8 @@ with torch.no_grad():
 ## 📚 참고 자료
 
 - [ASL-Sign-Research](https://github.com/adityamakkar000/ASL-Sign-Research): 원본 ASL 프로젝트
-- [SignGlove_HW](https://github.com/your-username/SignGlove_HW): 하드웨어 구현 프로젝트
+- [SignGlove_HW](https://github.com/KNDG01001/SignGlove_HW): 하드웨어 구현 프로젝트
+- [PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/): 모델 프레임워크
 
 ## 📄 라이선스
 
