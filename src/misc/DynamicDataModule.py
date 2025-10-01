@@ -39,8 +39,8 @@ class DynamicDataModule(L.LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str = "/home/billy/25-1kp/SignGlove-DataAnalysis",
-        time_steps: int = 100,
+        data_dir: str = "/home/billy/25-1kp/SignGlove_HW/datasets/unified",
+        time_steps: int = 87,  # 새로운 SignGlove 데이터셋은 87 타임스텝
         n_channels: int = 8,
         batch_size: int = 32,
         kfold: int = 0,
@@ -81,41 +81,47 @@ class DynamicDataModule(L.LightningDataModule):
         self.scaler = StandardScaler()
 
     def find_data_files(self) -> List[str]:
-        """Find all episode CSV files in the data directory (excluding vowel folder)"""
-        # 자음 클래스 목록
+        """Find all episode CSV files in the new SignGlove dataset directory"""
+        # 새로운 SignGlove 데이터셋: 34개 클래스 (자음 14개 + 모음 10개 + 숫자 10개)
         consonants = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
-        # 모음 클래스 목록
         vowels = ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ']
+        numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
         consonant_files = []
         vowel_files = []
+        number_files = []
         
-        # 자음 파일 찾기 (vowel 폴더 제외)
+        # 새로운 SignGlove 데이터셋 구조: datasets/{class}/{session}/episode_*.csv
         for consonant in consonants:
-            consonant_pattern = os.path.join(self.data_dir, f"{consonant}_*", "*", "episode_*.csv")
+            consonant_pattern = os.path.join(self.data_dir, consonant, "*", "episode_*.csv")
             files = glob.glob(consonant_pattern)
             consonant_files.extend(files)
         
-        # 모음 파일 찾기 (vowel 폴더 제외, 루트 폴더의 모음 파일만)
         for vowel in vowels:
-            vowel_pattern = os.path.join(self.data_dir, f"{vowel}_*", "*", "episode_*.csv")
+            vowel_pattern = os.path.join(self.data_dir, vowel, "*", "episode_*.csv")
             files = glob.glob(vowel_pattern)
-            # vowel 폴더에 있는 파일들 제외
-            filtered_files = [f for f in files if '/vowel/' not in f]
-            vowel_files.extend(filtered_files)
+            vowel_files.extend(files)
         
-        files = consonant_files + vowel_files
-        print(f"Found {len(consonant_files)} consonant files and {len(vowel_files)} vowel files")
-        print(f"Total: {len(files)} episode files (vowel folder excluded)")
+        for number in numbers:
+            number_pattern = os.path.join(self.data_dir, number, "*", "episode_*.csv")
+            files = glob.glob(number_pattern)
+            number_files.extend(files)
+        
+        files = consonant_files + vowel_files + number_files
+        print(f"Found {len(consonant_files)} consonant files, {len(vowel_files)} vowel files, {len(number_files)} number files")
+        print(f"Total: {len(files)} episode files from new SignGlove dataset (34 classes)")
         return files
 
     def extract_class_from_filename(self, filepath: str) -> str:
-        """Extract class name from filename (e.g., episode_20250819_190506_ㄱ_1.csv -> ㄱ)"""
-        filename = os.path.basename(filepath)
-        # Extract Korean character from filename
-        parts = filename.split('_')
-        for part in parts:
-            if len(part) == 1 and ord(part) >= 0x3131 and ord(part) <= 0x318E:  # Korean jamo range
+        """Extract class name from filepath (new SignGlove dataset structure)"""
+        # 새로운 SignGlove 데이터셋 구조: datasets/{class}/{session}/episode_*.csv
+        path_parts = filepath.split('/')
+        for part in path_parts:
+            # 한글 자모 (ㄱ-ㅎ, ㅏ-ㅣ)
+            if len(part) == 1 and ord(part) >= 0x3131 and ord(part) <= 0x318E:
+                return part
+            # 숫자 (0-9)
+            elif len(part) == 1 and part.isdigit():
                 return part
         return "unknown"
 
@@ -306,10 +312,10 @@ class DynamicDataModule(L.LightningDataModule):
 if __name__ == "__main__":
     print("🧪 DynamicDataModule 테스트 시작...")
     
-    # Test with SignGlove-DataAnalysis data
+    # Test with new SignGlove dataset
     dm = DynamicDataModule(
-        data_dir="/home/billy/25-1kp/SignGlove-DataAnalysis",
-        time_steps=100,
+        data_dir="/home/billy/25-1kp/SignGlove_HW/datasets/unified",  # 새로운 데이터셋 경로로 변경 필요
+        time_steps=87,  # 새로운 SignGlove 데이터셋은 87 타임스텝
         n_channels=8,
         batch_size=16,
         use_test_split=True
