@@ -59,7 +59,7 @@ class TransformerEncoder(LitModel):
         )
 
     def forward(
-        self, x: Tensor, x_mask: Tensor, y_targets: Tensor
+        self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
         batch_size, seq_len, _ = x.shape
         
@@ -69,8 +69,14 @@ class TransformerEncoder(LitModel):
         # Add positional encoding
         x_proj = x_proj + self.pos_encoding[:seq_len, :].unsqueeze(0)
         
-        # Transformer encoder
-        encoded = self.transformer_encoder(x_proj)  # (batch, seq_len, hidden_size)
+        # Transformer encoder with padding mask
+        if x_padding is not None:
+            # x_padding: 1.0 = 패딩, 0.0 = 실제 데이터
+            # Transformer는 True인 위치를 마스킹
+            padding_mask = (x_padding == 1.0)
+            encoded = self.transformer_encoder(x_proj, src_key_padding_mask=padding_mask)
+        else:
+            encoded = self.transformer_encoder(x_proj)
         
         # Global average pooling
         pooled = encoded.mean(dim=1)  # (batch, hidden_size)
@@ -137,12 +143,13 @@ class CNNEncoder(LitModel):
         )
 
     def forward(
-        self, x: Tensor, x_mask: Tensor, y_targets: Tensor
+        self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
         # Transpose for Conv1d: (batch, time, channels) -> (batch, channels, time)
         x_conv = x.transpose(1, 2)
         
         # CNN encoding
+        # CNN + Global Pooling 사용으로 패딩 영향 최소화됨
         encoded = self.cnn_encoder(x_conv)  # (batch, hidden_size, 1)
         encoded = encoded.squeeze(-1)  # (batch, hidden_size)
         
@@ -216,7 +223,7 @@ class HybridEncoder(LitModel):
         )
 
     def forward(
-        self, x: Tensor, x_mask: Tensor, y_targets: Tensor
+        self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
         # CNN feature extraction
         x_conv = x.transpose(1, 2)  # (batch, channels, time)
@@ -229,8 +236,20 @@ class HybridEncoder(LitModel):
         seq_len = cnn_features.size(1)
         cnn_features = cnn_features + self.pos_encoding[:seq_len, :].unsqueeze(0)
         
-        # Transformer encoding
-        encoded = self.transformer_encoder(cnn_features)
+        # Transformer encoding with padding mask
+        if x_padding is not None:
+            # CNN의 MaxPool(2)로 시퀀스 길이가 1/2로 축소됨
+            # 패딩 마스크도 다운샘플링 필요
+            padding_downsampled = x_padding[:, ::2]  # 2배씩 샘플링
+            # 길이 맞추기
+            if padding_downsampled.size(1) > seq_len:
+                padding_mask = padding_downsampled[:, :seq_len]
+            else:
+                padding_mask = padding_downsampled
+            padding_mask = (padding_mask == 1.0)
+            encoded = self.transformer_encoder(cnn_features, src_key_padding_mask=padding_mask)
+        else:
+            encoded = self.transformer_encoder(cnn_features)
         
         # Global average pooling
         pooled = encoded.mean(dim=1)

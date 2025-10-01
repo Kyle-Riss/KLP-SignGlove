@@ -51,13 +51,23 @@ class LSTM(LitModel):
         )
 
     def forward(
-        self, x: Tensor, x_mask: Tensor, y_targets: Tensor
+        self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
         hidden_states, outputs = self.RNN(
             x
         )  # hidden states of all cells, outputs of last cells
+        
+        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
+        if x_padding is not None:
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1  # 0-indexed
+            valid_lengths = valid_lengths.clamp(min=0, max=outputs.size(1)-1)
+            batch_size = outputs.size(0)
+            final_output = outputs[torch.arange(batch_size), valid_lengths]
+        else:
+            final_output = outputs[:, -1, :]  # 차원 수정 (batch, time, features)
+        
         logits = self.output_layers(
-            outputs[-1, :, :]
+            final_output
         )  # output of last cell into dense layer
         loss = F.cross_entropy(logits, y_targets)  # cross entropy loss
         return logits, loss
@@ -103,11 +113,21 @@ class StackedLSTM(LitModel):
         )
 
     def forward(
-        self, x: Tensor, x_mask: Tensor, y_targets: Tensor
+        self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
         hidden_states, outputs = self.RNN(x)
+        
+        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
+        if x_padding is not None:
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1  # 0-indexed
+            valid_lengths = valid_lengths.clamp(min=0, max=outputs.size(1)-1)
+            batch_size = outputs.size(0)
+            final_output = outputs[torch.arange(batch_size), valid_lengths]
+        else:
+            final_output = outputs[:, -1, :]  # 차원 수정 (batch, time, features)
+        
         logits = self.output_layers(
-            outputs[-1, :, :]
+            final_output
         )
         loss = F.cross_entropy(logits, y_targets)
         return logits, loss
