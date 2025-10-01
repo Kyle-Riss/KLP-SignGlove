@@ -1,46 +1,25 @@
+"""
+간결한 DynamicDataModule - Lightning 모듈만 포함
+"""
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pad_sequence
 import pytorch_lightning as L
-import pandas as pd
-from sklearn.model_selection import StratifiedKFold, train_test_split
-from sklearn.preprocessing import StandardScaler
 import numpy as np
-import os
-import glob
-from typing import Dict, List, Tuple, Optional
-from torch import Tensor
-import json
+from torch.utils.data import DataLoader
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from typing import Tuple
 
-
-class getDataset(Dataset):
-    """pytorch Dataset object generation for SignGlove data"""
-
-    def __init__(self, x: np.ndarray, y: np.ndarray):
-        """Assign tensors to self states"""
-        self.x = torch.from_numpy(x).float()
-        self.y = torch.from_numpy(y).long()
-
-    def __len__(self) -> int:
-        """Length is the number of examples in a dataset"""
-        return self.x.shape[0]
-
-    def __getitem__(self, idx: int) -> Dict[str, Tensor]:
-        """get item and it's label with given index idx"""
-        sample = {
-            "measurement": self.x[idx],
-            "label": self.y[idx],
-        }
-        return sample
+from .data_loader import find_signglove_files
+from .data_preprocessor import preprocess_data, print_split_statistics
+from .dataset import SignGloveDataset
 
 
 class DynamicDataModule(L.LightningDataModule):
-    """Lightning Module for dynamic loading of SignGlove-DataAnalysis data"""
+    """SignGlove 데이터를 위한 Lightning DataModule"""
 
     def __init__(
         self,
         data_dir: str = "/home/billy/25-1kp/SignGlove_HW/datasets/unified",
-        time_steps: int = 87,  # 새로운 SignGlove 데이터셋은 87 타임스텝
+        time_steps: int = 87,
         n_channels: int = 8,
         batch_size: int = 32,
         kfold: int = 0,
@@ -50,7 +29,7 @@ class DynamicDataModule(L.LightningDataModule):
         test_size: float = 0.2,
         val_size: float = 0.2,
         use_test_split: bool = True,
-        resampling_method: str = "padding",  # "interpolation" or "padding"
+        resampling_method: str = "padding",
     ):
         super().__init__()
         
@@ -76,158 +55,11 @@ class DynamicDataModule(L.LightningDataModule):
             "generator": self.generator,
         }
         
-        # Store class names and scaler
+        # Store class names
         self.class_names = []
-        self.scaler = StandardScaler()
-
-    def find_data_files(self) -> List[str]:
-        """Find all episode CSV files in the new SignGlove dataset directory"""
-        # 새로운 SignGlove 데이터셋: 34개 클래스 (자음 14개 + 모음 10개 + 숫자 10개)
-        consonants = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
-        vowels = ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ']
-        numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        
-        consonant_files = []
-        vowel_files = []
-        number_files = []
-        
-        # 새로운 SignGlove 데이터셋 구조: datasets/{class}/{session}/episode_*.csv
-        for consonant in consonants:
-            consonant_pattern = os.path.join(self.data_dir, consonant, "*", "episode_*.csv")
-            files = glob.glob(consonant_pattern)
-            consonant_files.extend(files)
-        
-        for vowel in vowels:
-            vowel_pattern = os.path.join(self.data_dir, vowel, "*", "episode_*.csv")
-            files = glob.glob(vowel_pattern)
-            vowel_files.extend(files)
-        
-        for number in numbers:
-            number_pattern = os.path.join(self.data_dir, number, "*", "episode_*.csv")
-            files = glob.glob(number_pattern)
-            number_files.extend(files)
-        
-        files = consonant_files + vowel_files + number_files
-        print(f"Found {len(consonant_files)} consonant files, {len(vowel_files)} vowel files, {len(number_files)} number files")
-        print(f"Total: {len(files)} episode files from new SignGlove dataset (34 classes)")
-        return files
-
-    def extract_class_from_filename(self, filepath: str) -> str:
-        """Extract class name from filepath (new SignGlove dataset structure)"""
-        # 새로운 SignGlove 데이터셋 구조: datasets/{class}/{session}/episode_*.csv
-        path_parts = filepath.split('/')
-        for part in path_parts:
-            # 한글 자모 (ㄱ-ㅎ, ㅏ-ㅣ)
-            if len(part) == 1 and ord(part) >= 0x3131 and ord(part) <= 0x318E:
-                return part
-            # 숫자 (0-9)
-            elif len(part) == 1 and part.isdigit():
-                return part
-        return "unknown"
-
-    def load_csv_file(self, filepath: str) -> np.ndarray:
-        """Load a single CSV file and extract 8 channels"""
-        try:
-            df = pd.read_csv(filepath)
-            
-            # Extract 8 channels: flex1-5, pitch, roll, yaw
-            channels = ['flex1', 'flex2', 'flex3', 'flex4', 'flex5', 'pitch', 'roll', 'yaw']
-            data = df[channels].values
-            
-            return data
-        except Exception as e:
-            print(f"Error loading {filepath}: {e}")
-            return np.array([])
-
-    def normalize_timesteps(self, data: np.ndarray) -> np.ndarray:
-        """Normalize timestep length to self.time_steps"""
-        if len(data) == 0:
-            return np.array([])
-            
-        current_length = len(data)
-        
-        if current_length == self.time_steps:
-            return data
-        elif current_length > self.time_steps:
-            # Truncate to target length
-            return data[:self.time_steps]
-        else:
-            # Pad or interpolate to target length
-            if self.resampling_method == "interpolation":
-                # Linear interpolation (requires scipy)
-                try:
-                    from scipy.interpolate import interp1d
-                    x_old = np.linspace(0, 1, current_length)
-                    x_new = np.linspace(0, 1, self.time_steps)
-                    
-                    interpolated_data = np.zeros((self.time_steps, self.n_channels))
-                    for i in range(self.n_channels):
-                        f = interp1d(x_old, data[:, i], kind='linear', fill_value='extrapolate')
-                        interpolated_data[:, i] = f(x_new)
-                    
-                    return interpolated_data
-                except ImportError:
-                    print("Warning: scipy not available, falling back to padding")
-                    # Fallback to padding if scipy is not available
-                    pass
-            
-            # Default to ASL-style padding
-            if True:  # Always use padding now (default behavior)
-                # ASL-style Padding (constant_values=1.0)
-                padding_length = self.time_steps - current_length
-                padded_data = np.pad(data, ((0, padding_length), (0, 0)), mode='constant', constant_values=1.0)
-                return padded_data
-
-    def preprocess_data(self) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-        """Load and preprocess all data files"""
-        files = self.find_data_files()
-        
-        all_data = []
-        all_labels = []
-        class_to_idx = {}
-        
-        # 클래스 이름 초기화
-        self.class_names = []
-        
-        print("Loading and preprocessing data...")
-        
-        for filepath in files:
-            class_name = self.extract_class_from_filename(filepath)
-            
-            # 중복 클래스 방지
-            if class_name not in class_to_idx:
-                class_to_idx[class_name] = len(class_to_idx)
-                self.class_names.append(class_name)
-            
-            data = self.load_csv_file(filepath)
-            if len(data) > 0:
-                # Normalize timesteps
-                normalized_data = self.normalize_timesteps(data)
-                if len(normalized_data) > 0:
-                    all_data.append(normalized_data)
-                    all_labels.append(class_to_idx[class_name])
-        
-        if not all_data:
-            raise ValueError("No valid data found!")
-        
-        # Convert to numpy arrays
-        X = np.array(all_data)  # Shape: (samples, time_steps, channels)
-        y = np.array(all_labels)
-        
-        print(f"Data shape: {X.shape}")
-        print(f"Number of classes: {len(self.class_names)}")
-        print(f"Classes: {self.class_names}")
-        
-        # Normalize features
-        original_shape = X.shape
-        X_reshaped = X.reshape(-1, X.shape[-1])  # Reshape for scaling
-        X_scaled = self.scaler.fit_transform(X_reshaped)
-        X = X_scaled.reshape(original_shape)  # Reshape back
-        
-        return X, y, self.class_names
 
     def split_data(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Split data into train/val/test sets"""
+        """데이터를 train/val/test 세트로 분할합니다."""
         if self.use_test_split:
             # 3-way split: train/val/test
             X_temp, X_test, y_temp, y_test = train_test_split(
@@ -254,57 +86,50 @@ class DynamicDataModule(L.LightningDataModule):
                     
                     return X_train, X_val, X_test, y_train, y_val, y_test
 
-    def print_split_statistics(self, y_train: np.ndarray, y_val: np.ndarray, y_test: np.ndarray):
-        """Print detailed statistics of data splits"""
-        print("\n" + "="*60)
-        print("📊 데이터 분할 통계")
-        print("="*60)
-        
-        total_samples = len(y_train) + len(y_val) + len(y_test)
-        print(f"총 샘플 수: {total_samples}")
-        print(f"훈련 세트: {len(y_train)} ({len(y_train)/total_samples*100:.1f}%)")
-        print(f"검증 세트: {len(y_val)} ({len(y_val)/total_samples*100:.1f}%)")
-        print(f"테스트 세트: {len(y_test)} ({len(y_test)/total_samples*100:.1f}%)")
-        
-        print(f"\n클래스별 분포:")
-        for i, class_name in enumerate(self.class_names):
-            train_count = np.sum(y_train == i)
-            val_count = np.sum(y_val == i)
-            test_count = np.sum(y_test == i)
-            total_count = train_count + val_count + test_count
-            
-            print(f"  {class_name}: 총 {total_count}개 (훈련: {train_count}, 검증: {val_count}, 테스트: {test_count})")
-
     def setup(self, stage: str):
-        """Prepare data as tensors"""
+        """데이터를 준비합니다."""
         print("🚀 DynamicDataModule 설정 시작...")
         
+        # Find data files
+        files = find_signglove_files(self.data_dir)
+        
         # Load and preprocess data
-        X, y, class_names = self.preprocess_data()
+        X, y, class_names, scaler = preprocess_data(
+            files, self.time_steps, self.n_channels, self.resampling_method
+        )
+        
+        # Store class names
+        self.class_names = class_names
         
         # Split data
         X_train, X_val, X_test, y_train, y_val, y_test = self.split_data(X, y)
         
         # Print statistics
-        self.print_split_statistics(y_train, y_val, y_test)
+        print_split_statistics(y_train, y_val, y_test, self.class_names)
         
         # Create datasets
-        self.train_dataset = getDataset(X_train, y_train)
-        self.val_dataset = getDataset(X_val, y_val)
-        self.test_dataset = getDataset(X_test, y_test)
+        self.train_dataset = SignGloveDataset(
+            torch.from_numpy(X_train), torch.from_numpy(y_train)
+        )
+        self.val_dataset = SignGloveDataset(
+            torch.from_numpy(X_val), torch.from_numpy(y_val)
+        )
+        self.test_dataset = SignGloveDataset(
+            torch.from_numpy(X_test), torch.from_numpy(y_test)
+        )
         
         print("✅ DynamicDataModule 설정 완료!")
 
     def train_dataloader(self) -> DataLoader:
-        """Called when trainer.fit() is used"""
+        """훈련 데이터로더를 반환합니다."""
         return DataLoader(self.train_dataset, **self.params)
 
     def val_dataloader(self) -> DataLoader:
-        """Called when trainer.val() is used in training cycle"""
+        """검증 데이터로더를 반환합니다."""
         return DataLoader(self.val_dataset, batch_size=len(self.val_dataset))
 
     def test_dataloader(self) -> DataLoader:
-        """Called when trainer.test() is used"""
+        """테스트 데이터로더를 반환합니다."""
         return DataLoader(self.test_dataset, batch_size=len(self.test_dataset))
 
 
@@ -312,10 +137,10 @@ class DynamicDataModule(L.LightningDataModule):
 if __name__ == "__main__":
     print("🧪 DynamicDataModule 테스트 시작...")
     
-    # Test with new SignGlove dataset
+    # Test with SignGlove dataset
     dm = DynamicDataModule(
-        data_dir="/home/billy/25-1kp/SignGlove_HW/datasets/unified",  # 새로운 데이터셋 경로로 변경 필요
-        time_steps=87,  # 새로운 SignGlove 데이터셋은 87 타임스텝
+        data_dir="/home/billy/25-1kp/SignGlove_HW/datasets/unified",
+        time_steps=87,
         n_channels=8,
         batch_size=16,
         use_test_split=True
