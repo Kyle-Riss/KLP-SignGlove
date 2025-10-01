@@ -51,12 +51,13 @@ def preprocess_data(
     target_timesteps: int, 
     n_channels: int = 8,
     resampling_method: str = "padding"
-) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
     """모든 데이터 파일을 로드하고 전처리합니다."""
     from .data_loader import load_csv_file, extract_class_from_filename
     
     all_data = []
     all_labels = []
+    all_padding_info = []  # 패딩 정보 저장
     class_to_idx = {}
     class_names = []
     
@@ -72,11 +73,23 @@ def preprocess_data(
         
         data = load_csv_file(filepath)
         if len(data) > 0:
+            original_length = len(data)
             # Normalize timesteps
             normalized_data = normalize_timesteps(data, target_timesteps, resampling_method)
             if len(normalized_data) > 0:
                 all_data.append(normalized_data)
                 all_labels.append(class_to_idx[class_name])
+                
+                # 패딩 정보 생성 (ASL 방식)
+                if original_length < target_timesteps:
+                    # 패딩된 경우: 패딩 부분을 1.0, 실제 데이터 부분을 0.0
+                    padding_info = np.zeros(target_timesteps)
+                    padding_info[original_length:] = 1.0  # 패딩된 부분
+                else:
+                    # 트렁케이션된 경우: 모두 0.0 (실제 데이터)
+                    padding_info = np.zeros(target_timesteps)
+                
+                all_padding_info.append(padding_info)
     
     if not all_data:
         raise ValueError("No valid data found!")
@@ -84,8 +97,10 @@ def preprocess_data(
     # Convert to numpy arrays
     X = np.array(all_data)  # Shape: (samples, time_steps, channels)
     y = np.array(all_labels)
+    X_padding = np.array(all_padding_info)  # Shape: (samples, time_steps)
     
     print(f"Data shape: {X.shape}")
+    print(f"Padding shape: {X_padding.shape}")
     print(f"Number of classes: {len(class_names)}")
     print(f"Classes: {class_names}")
     
@@ -96,7 +111,7 @@ def preprocess_data(
     X_scaled = scaler.fit_transform(X_reshaped)
     X = X_scaled.reshape(original_shape)  # Reshape back
     
-    return X, y, class_names, scaler
+    return X, y, X_padding, class_names, scaler
 
 
 def print_split_statistics(y_train: np.ndarray, y_val: np.ndarray, y_test: np.ndarray, class_names: List[str]):

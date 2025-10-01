@@ -58,20 +58,20 @@ class DynamicDataModule(L.LightningDataModule):
         # Store class names
         self.class_names = []
 
-    def split_data(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def split_data(self, X: np.ndarray, y: np.ndarray, X_padding: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """데이터를 train/val/test 세트로 분할합니다."""
         if self.use_test_split:
             # 3-way split: train/val/test
-            X_temp, X_test, y_temp, y_test = train_test_split(
-                X, y, test_size=self.test_size, random_state=self.seed, stratify=y
+            X_temp, X_test, y_temp, y_test, X_padding_temp, X_padding_test = train_test_split(
+                X, y, X_padding, test_size=self.test_size, random_state=self.seed, stratify=y
             )
             
             val_size_adjusted = self.val_size / (1 - self.test_size)
-            X_train, X_val, y_train, y_val = train_test_split(
-                X_temp, y_temp, test_size=val_size_adjusted, random_state=self.seed, stratify=y_temp
+            X_train, X_val, y_train, y_val, X_padding_train, X_padding_val = train_test_split(
+                X_temp, y_temp, X_padding_temp, test_size=val_size_adjusted, random_state=self.seed, stratify=y_temp
             )
             
-            return X_train, X_val, X_test, y_train, y_val, y_test
+            return X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test
         else:
             # Use K-fold for train/val split
             kfold = StratifiedKFold(n_splits=self.splits, shuffle=True, random_state=self.seed)
@@ -80,11 +80,13 @@ class DynamicDataModule(L.LightningDataModule):
                 if i == self.kfold:
                     X_train, X_val = X[train_idx], X[val_idx]
                     y_train, y_val = y[train_idx], y[val_idx]
+                    X_padding_train, X_padding_val = X_padding[train_idx], X_padding[val_idx]
                     
                     # Create dummy test set (same as val for K-fold)
                     X_test, y_test = X_val.copy(), y_val.copy()
+                    X_padding_test = X_padding_val.copy()
                     
-                    return X_train, X_val, X_test, y_train, y_val, y_test
+                    return X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test
 
     def setup(self, stage: str):
         """데이터를 준비합니다."""
@@ -94,7 +96,7 @@ class DynamicDataModule(L.LightningDataModule):
         files = find_signglove_files(self.data_dir)
         
         # Load and preprocess data
-        X, y, class_names, scaler = preprocess_data(
+        X, y, X_padding, class_names, scaler = preprocess_data(
             files, self.time_steps, self.n_channels, self.resampling_method
         )
         
@@ -102,20 +104,26 @@ class DynamicDataModule(L.LightningDataModule):
         self.class_names = class_names
         
         # Split data
-        X_train, X_val, X_test, y_train, y_val, y_test = self.split_data(X, y)
+        X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test = self.split_data(X, y, X_padding)
         
         # Print statistics
         print_split_statistics(y_train, y_val, y_test, self.class_names)
         
-        # Create datasets
+        # Create datasets with padding information
         self.train_dataset = SignGloveDataset(
-            torch.from_numpy(X_train), torch.from_numpy(y_train)
+            torch.from_numpy(X_train), 
+            torch.from_numpy(y_train),
+            torch.from_numpy(X_padding_train)
         )
         self.val_dataset = SignGloveDataset(
-            torch.from_numpy(X_val), torch.from_numpy(y_val)
+            torch.from_numpy(X_val), 
+            torch.from_numpy(y_val),
+            torch.from_numpy(X_padding_val)
         )
         self.test_dataset = SignGloveDataset(
-            torch.from_numpy(X_test), torch.from_numpy(y_test)
+            torch.from_numpy(X_test), 
+            torch.from_numpy(y_test),
+            torch.from_numpy(X_padding_test)
         )
         
         print("✅ DynamicDataModule 설정 완료!")

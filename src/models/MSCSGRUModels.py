@@ -60,7 +60,7 @@ class MSCGRU(nn.Module):
             nn.Linear(2*hidden_size, classes)
         )
     
-    def forward(self, x: Tensor, x_mask: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, x_padding: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
         # Multi-Scale CNN
         x_conv = x.transpose(1, 2)  # (batch, channels, time)
         t1 = self.tower1(x_conv)
@@ -72,7 +72,21 @@ class MSCGRU(nn.Module):
         # Single GRU
         conv_out = conv_out.transpose(1, 2)  # (batch, time, channels)
         gru_out, _ = self.gru(conv_out)
-        final_features = gru_out[:, -1, :]  # 마지막 시간 단계
+        
+        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
+        if x_padding is not None:
+            # x_padding: (batch, time), 1.0은 패딩, 0.0은 실제 데이터
+            # 각 시퀀스의 마지막 유효 타임스텝 인덱스 계산
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1  # 0-indexed
+            valid_lengths = valid_lengths.clamp(min=0, max=gru_out.size(1)-1)
+            
+            # 각 배치의 마지막 유효 타임스텝에서 특징 추출
+            batch_size = gru_out.size(0)
+            final_features = gru_out[torch.arange(batch_size), valid_lengths]
+        else:
+            # 패딩 정보가 없으면 기존 방식대로 마지막 타임스텝 사용
+            final_features = gru_out[:, -1, :]
+        
         final_features = self.dropout(final_features)
         
         # 분류
@@ -124,7 +138,7 @@ class CNNGRU(nn.Module):
             nn.Linear(2*hidden_size, classes)
         )
     
-    def forward(self, x: Tensor, x_mask: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, x_padding: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
         # CNN
         x_conv = x.transpose(1, 2)  # (batch, channels, time)
         conv_out = self.cnn(x_conv)
@@ -132,7 +146,16 @@ class CNNGRU(nn.Module):
         # GRU
         conv_out = conv_out.transpose(1, 2)  # (batch, time, channels)
         gru_out, _ = self.gru(conv_out)
-        final_features = gru_out[:, -1, :]  # 마지막 시간 단계
+        
+        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
+        if x_padding is not None:
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1
+            valid_lengths = valid_lengths.clamp(min=0, max=gru_out.size(1)-1)
+            batch_size = gru_out.size(0)
+            final_features = gru_out[torch.arange(batch_size), valid_lengths]
+        else:
+            final_features = gru_out[:, -1, :]
+        
         final_features = self.dropout(final_features)
         
         # 분류
@@ -185,7 +208,7 @@ class CNNStackedGRU(nn.Module):
             nn.Linear(2*hidden_size, classes)
         )
     
-    def forward(self, x: Tensor, x_mask: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, x_padding: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
         # CNN
         x_conv = x.transpose(1, 2)  # (batch, channels, time)
         conv_out = self.cnn(x_conv)
@@ -195,7 +218,16 @@ class CNNStackedGRU(nn.Module):
         gru1_out, _ = self.gru1(conv_out)
         gru1_out = self.dropout(gru1_out)
         gru2_out, _ = self.gru2(gru1_out)
-        final_features = gru2_out[:, -1, :]  # 마지막 시간 단계
+        
+        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
+        if x_padding is not None:
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1
+            valid_lengths = valid_lengths.clamp(min=0, max=gru2_out.size(1)-1)
+            batch_size = gru2_out.size(0)
+            final_features = gru2_out[torch.arange(batch_size), valid_lengths]
+        else:
+            final_features = gru2_out[:, -1, :]
+        
         final_features = self.dropout(final_features)
         
         # 분류
@@ -262,7 +294,7 @@ class MSCSGRU(nn.Module):
             nn.Linear(2*hidden_size, classes)
         )
     
-    def forward(self, x: Tensor, x_mask: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, x_padding: Tensor, y_targets: Tensor) -> Tuple[Tensor, Tensor]:
         # Multi-Scale CNN
         x_conv = x.transpose(1, 2)  # (batch, channels, time)
         t1 = self.tower1(x_conv)
@@ -276,7 +308,15 @@ class MSCSGRU(nn.Module):
         gru1_out, _ = self.gru1(conv_out)
         gru1_out = self.dropout(gru1_out)
         gru2_out, _ = self.gru2(gru1_out)
-        final_features = gru2_out[:, -1, :]  # 마지막 시간 단계
+        
+        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
+        if x_padding is not None:
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1
+            valid_lengths = valid_lengths.clamp(min=0, max=gru2_out.size(1)-1)
+            batch_size = gru2_out.size(0)
+            final_features = gru2_out[torch.arange(batch_size), valid_lengths]
+        else:
+            final_features = gru2_out[:, -1, :]
         
         # 분류
         logits = self.output_layers(final_features)

@@ -19,9 +19,9 @@ class LitModel(L.LightningModule, ModelInfo):
 
         x = batch['measurement']
         y = batch['label']
-        x_mask = None  # 현재 데이터셋에는 패딩 정보가 없음
+        x_padding = batch.get('measurement_padding', None)  # 패딩 정보 사용
 
-        logits, loss = self(x, x_mask, y)  # forward pass
+        logits, loss = self(x, x_padding, y)  # forward pass
         
         # 정확도 계산 및 로깅
         predictions = torch.argmax(logits, dim=-1)
@@ -70,9 +70,9 @@ class LitModel(L.LightningModule, ModelInfo):
 
         x = batch['measurement']
         y = batch['label']
-        x_mask = None  # 현재 데이터셋에는 패딩 정보가 없음
+        x_padding = batch.get('measurement_padding', None)  # 패딩 정보 사용
 
-        logits, loss = self(x, x_mask, y)  # forward pass
+        logits, loss = self(x, x_padding, y)  # forward pass
         logits_argmax = torch.argmax(logits, dim=-1)  # get argmax of logits
         # confusion matrix
         cm = confusion_matrix(
@@ -108,9 +108,9 @@ class LitModel(L.LightningModule, ModelInfo):
         
         x = batch['measurement']
         y = batch['label']
-        x_mask = None  # 현재 데이터셋에는 패딩 정보가 없음
+        x_padding = batch.get('measurement_padding', None)  # 패딩 정보 사용
         
-        logits, loss = self(x, x_mask, y)  # forward pass
+        logits, loss = self(x, x_padding, y)  # forward pass
         logits_argmax = torch.argmax(logits, dim=-1)  # get argmax of logits
         
         # confusion matrix
