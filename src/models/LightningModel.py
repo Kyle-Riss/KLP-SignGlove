@@ -17,13 +17,15 @@ class LitModel(L.LightningModule, ModelInfo):
     def training_step(self, batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         """training step for the model with regularization"""
 
-        x, x_padding, y = batch
+        x = batch['measurement']
+        y = batch['label']
+        x_mask = None  # 현재 데이터셋에는 패딩 정보가 없음
 
-        logits, loss = self(batch[x], batch[x_padding], batch[y])  # forward pass
+        logits, loss = self(x, x_mask, y)  # forward pass
         
         # 정확도 계산 및 로깅
         predictions = torch.argmax(logits, dim=-1)
-        accuracy = (predictions == batch[y]).float().mean()
+        accuracy = (predictions == y).float().mean()
         
         self.log("train/loss", loss, prog_bar=True)
         self.log("train/accuracy", accuracy, prog_bar=True)
@@ -66,19 +68,21 @@ class LitModel(L.LightningModule, ModelInfo):
 
     def validation_step(self, batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
 
-        x, x_padding, y = batch
+        x = batch['measurement']
+        y = batch['label']
+        x_mask = None  # 현재 데이터셋에는 패딩 정보가 없음
 
-        logits, loss = self(batch[x], batch[x_padding], batch[y])  # forward pass
+        logits, loss = self(x, x_mask, y)  # forward pass
         logits_argmax = torch.argmax(logits, dim=-1)  # get argmax of logits
         # confusion matrix
         cm = confusion_matrix(
-            batch[y].cpu(),
+            y.cpu(),
             logits.cpu().argmax(axis=1).numpy(),
             labels=np.arange(self.classes).tolist(),
         )
         true_acc, cat_acc = self.get_accuracy(cm)  # call accuracy from misc.py
         val_f1 = multiclass_f1_score(
-            logits, batch[y], num_classes=self.classes, average=None
+            logits, y, num_classes=self.classes, average=None
         )  # f1-score
 
         # log metrics
@@ -90,7 +94,7 @@ class LitModel(L.LightningModule, ModelInfo):
         if isinstance(self.logger, WandbLogger):
             plot = wandb.plot.confusion_matrix(
                 probs=None,
-                y_true=np.array(batch[y].cpu()),
+                y_true=np.array(y.cpu()),
                 preds=np.array(logits_argmax.cpu()),
                 class_names=np.arange(self.classes).tolist(),
             )
@@ -102,20 +106,22 @@ class LitModel(L.LightningModule, ModelInfo):
     def test_step(self, batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         """test step for the model"""
         
-        x, x_padding, y = batch
+        x = batch['measurement']
+        y = batch['label']
+        x_mask = None  # 현재 데이터셋에는 패딩 정보가 없음
         
-        logits, loss = self(batch[x], batch[x_padding], batch[y])  # forward pass
+        logits, loss = self(x, x_mask, y)  # forward pass
         logits_argmax = torch.argmax(logits, dim=-1)  # get argmax of logits
         
         # confusion matrix
         cm = confusion_matrix(
-            batch[y].cpu(),
+            y.cpu(),
             logits.cpu().argmax(axis=1).numpy(),
             labels=np.arange(self.classes).tolist(),
         )
         true_acc, cat_acc = self.get_accuracy(cm)  # call accuracy from misc.py
         test_f1 = multiclass_f1_score(
-            logits, batch[y], num_classes=self.classes, average=None
+            logits, y, num_classes=self.classes, average=None
         )  # f1-score
         
         # log metrics
