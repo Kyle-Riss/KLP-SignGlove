@@ -34,7 +34,7 @@ class SignGloveInference:
         target_timesteps: int = 87,
         device: str = None,
         class_names: List[str] = None,
-        scaler_path: str = 'best_model/scaler.pkl',
+        scaler_path: str = None,
         single_predict_device: str = 'cpu',
         enable_dtw: bool = False
     ):
@@ -76,16 +76,21 @@ class SignGloveInference:
         
         # 전처리기 초기화 (훈련 시 저장된 StandardScaler 강제 사용)
         try:
+            # 스케일러 경로가 지정되지 않으면 모델 경로 기준으로 추정
+            resolved_scaler_path = scaler_path
+            if resolved_scaler_path is None:
+                resolved_scaler_path = str(self.model_path.parent / 'scaler.pkl')
+
             self.preprocessor = InferencePreprocessor.load_scaler(
-                scaler_path,
+                resolved_scaler_path,
                 target_timesteps=target_timesteps,
                 n_channels=input_size
             )
-            print(f"  Scaler loaded from: {scaler_path}")
+            print(f"  Scaler loaded from: {resolved_scaler_path}")
         except Exception as e:
             # 안전장치: 로드 실패 시 명시적으로 예외 전파해 무결성 보장
             raise FileNotFoundError(
-                f"StandardScaler file not found or invalid at '{scaler_path}'. "
+                f"StandardScaler file not found or invalid. Tried: '{scaler_path}' and '{self.model_path.parent / 'scaler.pkl'}'. "
                 f"Train-time scaler must be provided. Original error: {e}"
             )
         
