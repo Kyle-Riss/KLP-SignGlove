@@ -14,7 +14,7 @@ from .dataset import SignGloveDataset
 
 
 class DynamicDataModule(L.LightningDataModule):
-    """SignGlove 데이터를 위한 Lightning DataModule"""
+    """SignGlove 데이터를 위한 Lightning DataModule (24 classes: 14 consonants + 10 vowels)"""
 
     def __init__(
         self,

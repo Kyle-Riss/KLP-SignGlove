@@ -101,7 +101,7 @@ def preprocess_data(
     
     print(f"Data shape: {X.shape}")
     print(f"Padding shape: {X_padding.shape}")
-    print(f"Number of classes: {len(class_names)}")
+    print(f"Number of classes: {len(class_names)} (24 classes: 14 consonants + 10 vowels)")
     print(f"Classes: {class_names}")
     
     # Normalize features

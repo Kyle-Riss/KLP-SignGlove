@@ -1,10 +1,10 @@
 # KLP-SignGlove: 한국어 수화 인식 프로젝트
 
-한국어 수화 자모(자음, 모음) 및 숫자 인식을 위한 센서 장갑 기반 실시간 분류 시스템입니다.
+한국어 수화 자모(자음, 모음) 인식을 위한 센서 장갑 기반 실시간 분류 시스템입니다.
 
 ## 🎯 프로젝트 개요
 
-**목표**: 한국어 수화 자모 34개 클래스(자음 14개 + 모음 10개 + 숫자 10개)를 실시간으로 인식하는 시스템 개발
+**목표**: 한국어 수화 자모 24개 클래스(자음 14개 + 모음 10개)를 실시간으로 인식하는 시스템 개발
 
 **특징**: 
 - **멀티스케일 CNN + GRU 하이브리드 모델**: 다양한 시간 스케일의 패턴을 동시에 학습
@@ -16,17 +16,16 @@
 
 ### SignGlove (우리) 데이터셋
 - **총 샘플 수**: 7,200개
-- **클래스 수**: 34개 (자음 14개 + 모음 10개 + 숫자 10개)
+- **클래스 수**: 24개 (자음 14개 + 모음 10개)
 - **타임스텝**: 87개
 - **센서 채널**: 8개 (flex1-5 + pitch, roll, yaw)
 - **샘플링 주파수**: 32.1 Hz
 - **데이터 분할**: 훈련 70%, 검증 15%, 테스트 15%
-- **전처리 방식**: 패딩/트렁케이션 + StandardScaler 정규화
+- **전처리 방식**: 패딩/트렁케이션(0.0 패딩) + StandardScaler 정규화
 
 ### 클래스 목록
 - **자음 (14개)**: ㄱ, ㄴ, ㄷ, ㄹ, ㅁ, ㅂ, ㅅ, ㅇ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ, ㅎ
 - **모음 (10개)**: ㅏ, ㅑ, ㅓ, ㅕ, ㅗ, ㅛ, ㅜ, ㅠ, ㅡ, ㅣ
-- **숫자 (10개)**: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 
 ## 🏗️ 모델 아키텍처
 
@@ -34,14 +33,14 @@
 ```python
 Conv1D(kernel=3) → BatchNorm → ReLU → MaxPool → Dropout
          ↓
-Single GRU(64) → Dropout → Dense(128) → Dense(34)
+Single GRU(64) → Dropout → Dense(128) → Dense(24)
 ```
 
 ### 2. CNN-StackedGRU (Single-scale CNN + Stacked GRU)
 ```python
 Conv1D(kernel=3) → BatchNorm → ReLU → MaxPool → Dropout
          ↓
-GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(34)
+GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(24)
 ```
 
 ### 3. MS-GRU (Multi-scale CNN + Single GRU)
@@ -50,7 +49,7 @@ Tower1(kernel=3) ┐
 Tower2(kernel=5) ├→ Concat → BatchNorm → ReLU → MaxPool → Dropout
 Tower3(kernel=7) ┘
          ↓
-Single GRU(64) → Dropout → Dense(128) → Dense(34)
+Single GRU(64) → Dropout → Dense(128) → Dense(24)
 ```
 
 ### 4. MS-StackedGRU (Multi-scale CNN + Stacked GRU)
@@ -59,7 +58,7 @@ Tower1(kernel=3) ┐
 Tower2(kernel=5) ├→ Concat → BatchNorm → ReLU → MaxPool → Dropout
 Tower3(kernel=7) ┘
          ↓
-GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(34)
+GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(24)
 ```
 
 ## 📁 프로젝트 구조
