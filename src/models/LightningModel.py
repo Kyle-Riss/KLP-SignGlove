@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-import lightning as L
+import pytorch_lightning as L
 import wandb
-from lightning.pytorch.loggers.wandb import WandbLogger
+from pytorch_lightning.loggers.wandb import WandbLogger
 from torcheval.metrics.functional import multiclass_f1_score
 from sklearn.metrics import confusion_matrix
 

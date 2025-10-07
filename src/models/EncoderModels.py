@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.models.generalModels import *
@@ -18,7 +19,7 @@ class TransformerEncoder(LitModel):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         num_heads=8,
         num_layers=2,
         dropout=0.2,
@@ -99,7 +100,7 @@ class CNNEncoder(LitModel):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         dropout=0.2,
     ):
         super().__init__()
@@ -171,7 +172,7 @@ class HybridEncoder(LitModel):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         num_heads=8,
         num_layers=2,
         dropout=0.2,

@@ -4,8 +4,10 @@ import torch.nn.functional as F
 from typing import Tuple
 from torch import Tensor
 
+from src.models.LightningModel import LitModel
 
-class MSCGRU(nn.Module):
+
+class MSCGRU(LitModel):
     """
     MS-CGRU: Multi-Scale CNN + Single GRU 모델
     Stacked GRU 대신 단일 GRU 사용
@@ -16,7 +18,7 @@ class MSCGRU(nn.Module):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         cnn_filters=32,
         dropout=0.3,
         **kwargs
@@ -96,7 +98,7 @@ class MSCGRU(nn.Module):
         return logits, loss
 
 
-class CNNGRU(nn.Module):
+class CNNGRU(LitModel):
     """
     CNN-GRU: 단일 스케일 CNN + GRU 모델
     멀티스케일 대신 단일 CNN 사용
@@ -107,7 +109,7 @@ class CNNGRU(nn.Module):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         cnn_filters=32,
         dropout=0.3,
         **kwargs
@@ -165,7 +167,7 @@ class CNNGRU(nn.Module):
         return logits, loss
 
 
-class CNNStackedGRU(nn.Module):
+class CNNStackedGRU(LitModel):
     """
     CNN-StackedGRU: 단일 스케일 CNN + 2층 GRU 모델
     단일 Conv1D 뒤에 2개의 GRU 층을 순차로 배치
@@ -176,7 +178,7 @@ class CNNStackedGRU(nn.Module):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         cnn_filters=32,
         dropout=0.3,
         **kwargs
@@ -237,7 +239,7 @@ class CNNStackedGRU(nn.Module):
         return logits, loss
 
 
-class MSCSGRU(nn.Module):
+class MSCSGRU(LitModel):
     """
     MS-CSGRU: Multi-Scale CNN + Stacked GRU 모델
     ASL GRU 스타일로 간결하게 구현
@@ -248,7 +250,7 @@ class MSCSGRU(nn.Module):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         cnn_filters=32,
         gru_layers=2,
         dropout=0.3,

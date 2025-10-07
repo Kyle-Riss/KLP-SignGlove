@@ -1,0 +1,2 @@
+❌ 지원하지 않는 RNN 모델: MSCSGRU
+지원 모델: GRU, LSTM, StackedGRU, StackedLSTM

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.models.generalModels import *
@@ -17,7 +18,7 @@ class LSTM(LitModel):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         batch_first=True,
         layers=2,
         dense_layer=(False, 64),
@@ -53,18 +54,12 @@ class LSTM(LitModel):
     def forward(
         self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        hidden_states, outputs = self.RNN(
+        outputs, (hidden, cell) = self.RNN(
             x
-        )  # hidden states of all cells, outputs of last cells
+        )  # outputs: all timesteps (batch, seq, features), hidden/cell: last hidden state
         
-        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
-        if x_padding is not None:
-            valid_lengths = (x_padding == 0).sum(dim=1) - 1  # 0-indexed
-            valid_lengths = valid_lengths.clamp(min=0, max=outputs.size(1)-1)
-            batch_size = outputs.size(0)
-            final_output = outputs[torch.arange(batch_size), valid_lengths]
-        else:
-            final_output = outputs[:, -1, :]  # 차원 수정 (batch, time, features)
+        # 단순화된 패딩 처리 - 마지막 타임스텝 사용
+        final_output = outputs[:, -1, :]  # (batch, features)
         
         logits = self.output_layers(
             final_output
@@ -83,7 +78,7 @@ class StackedLSTM(LitModel):
         learning_rate,
         input_size=8,
         hidden_size=64,
-        classes=34,
+        classes=24,
         batch_first=True,
         layers=2,
         dense_layer=(False, 64),
@@ -115,16 +110,10 @@ class StackedLSTM(LitModel):
     def forward(
         self, x: Tensor, x_padding: Tensor, y_targets: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        hidden_states, outputs = self.RNN(x)
+        outputs, (hidden, cell) = self.RNN(x)
         
-        # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
-        if x_padding is not None:
-            valid_lengths = (x_padding == 0).sum(dim=1) - 1  # 0-indexed
-            valid_lengths = valid_lengths.clamp(min=0, max=outputs.size(1)-1)
-            batch_size = outputs.size(0)
-            final_output = outputs[torch.arange(batch_size), valid_lengths]
-        else:
-            final_output = outputs[:, -1, :]  # 차원 수정 (batch, time, features)
+        # 단순화된 패딩 처리 - 마지막 타임스텝 사용
+        final_output = outputs[:, -1, :]  # (batch, features)
         
         logits = self.output_layers(
             final_output
