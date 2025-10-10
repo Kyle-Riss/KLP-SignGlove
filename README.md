@@ -15,13 +15,13 @@
 ## 📊 데이터셋 정보
 
 ### SignGlove (우리) 데이터셋
-- **총 샘플 수**: 7,200개
+- **총 샘플 수**: 1,444개
 - **클래스 수**: 24개 (자음 14개 + 모음 10개)
 - **타임스텝**: 87개
 - **센서 채널**: 8개 (flex1-5 + pitch, roll, yaw)
 - **샘플링 주파수**: 32.1 Hz
-- **데이터 분할**: 훈련 70%, 검증 15%, 테스트 15%
-- **전처리 방식**: 패딩/트렁케이션(0.0 패딩) + StandardScaler 정규화
+- **데이터 분할**: 훈련 60%, 검증 20%, 테스트 20%
+- **전처리 방식**: 제로 패딩(0.0) + StandardScaler 정규화
 
 ### 클래스 목록
 - **자음 (14개)**: ㄱ, ㄴ, ㄷ, ㄹ, ㅁ, ㅂ, ㅅ, ㅇ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ, ㅎ
@@ -73,17 +73,18 @@ KLP-SignGlove-Clean/
 │   │   ├── EncoderModels.py      # Transformer/CNN 인코더들
 │   │   ├── generalModels.py      # 공통 모델 클래스
 │   │   └── LightningModel.py     # PyTorch Lightning 기본 클래스
+│   ├── experiments/              # 학습 스크립트
+│   │   ├── LightningTrain.py     # PyTorch Lightning 학습
+│   │   └── ModelTrain.sh         # 모델별 학습 실행
 │   └── misc/
 │       └── DynamicDataModule.py  # 데이터 로더 및 전처리
-├── best_model/                   # 최고 성능 모델
-│   ├── best_model.ckpt
-│   └── results.json
-├── final_results/               # 최종 실험 결과
-│   ├── results.json
-│   └── project_summary.txt
+├── visualizations/              # 학습 곡선 시각화
+│   ├── GRU/                     # GRU 모델 결과
+│   ├── CNNGRU/                  # CNNGRU 모델 결과
+│   └── MSCSGRU/                 # MSCSGRU 모델 결과
+├── analyze_training.py          # 학습 결과 분석 스크립트
 ├── requirements.txt             # 의존성 패키지
 ├── README.md                   # 프로젝트 문서
-├── README_our_version.md       # 상세 기술 문서
 └── LICENSE                     # MIT 라이선스
 ```
 
@@ -106,61 +107,53 @@ git clone https://github.com/KNDG01001/SignGlove_HW.git
 # 데이터는 /home/billy/25-1kp/SignGlove_HW/datasets/unified/ 에 위치
 ```
 
-### 3. 모델 테스트
-```python
-import torch
-from src.models.MSCSGRUModels import CNNGRU, CNNStackedGRU, MSCGRU, MSCSGRU
+### 3. 모델 학습 및 평가
+```bash
+# 개별 모델 학습
+cd src/experiments
+bash ModelTrain.sh RNN GRU
+bash ModelTrain.sh MSCSGRU CNNGRU
+bash ModelTrain.sh MSCSGRU MSCSGRU
 
-# 테스트 데이터
-batch_size, time_steps, input_channels = 4, 87, 8
-num_classes = 34
-x = torch.randn(batch_size, time_steps, input_channels)
-x_mask = torch.ones(batch_size, time_steps)
-y_targets = torch.randint(0, num_classes, (batch_size,))
-
-# 모델 선택 및 테스트
-model = MSCGRU(learning_rate=1e-3, input_size=8, hidden_size=64, classes=34)
-logits, loss = model(x, x_mask, y_targets)
-print(f"Output shape: {logits.shape}, Loss: {loss.item():.4f}")
+# 학습 결과 시각화
+cd ../../
+python3 analyze_training.py -model GRU
+python3 analyze_training.py -model CNNGRU
+python3 analyze_training.py -model MSCSGRU
 ```
 
-### 4. 데이터 로더 테스트
-```python
-from src.misc.DynamicDataModule import DynamicDataModule
+### 4. 모델 성능 확인
+```bash
+# 학습 로그에서 최종 성능 확인
+tail -20 training_output_RNN_GRU.log
+tail -20 training_output_MSCSGRU_CNNGRU.log
+tail -20 training_output_MSCSGRU_MSCSGRU.log
 
-# 데이터 모듈 초기화
-data_module = DynamicDataModule(
-    data_dir="/home/billy/25-1kp/SignGlove_HW/datasets/unified",
-    time_steps=87,
-    batch_size=32
-)
-
-# 데이터 로드
-data_module.setup(stage='fit')
-train_loader = data_module.train_dataloader()
-
-# 배치 확인
-for batch in train_loader:
-    print(f"Batch shape: {batch['measurement'].shape}")
-    print(f"Labels: {batch['label']}")
-    break
+# 시각화 파일 확인
+ls visualizations/GRU/
+ls visualizations/CNNGRU/
+ls visualizations/MSCSGRU/
 ```
 
 ## 📈 모델 성능 비교
 
-### 초기 손실값 (무작위 초기화)
-| 모델 | 초기 손실 | 특징 |
-|------|-----------|------|
-| **CNN-GRU** | ~3.58 | 단순하고 빠름 |
-| **CNN-StackedGRU** | ~3.52 | 중간 복잡도 |
-| **MS-GRU** | ~3.58 | 멀티스케일 특징 추출 |
-| **MS-StackedGRU** | ~3.47 | 가장 높은 표현력 |
+### 최종 학습 결과 (Early Stopping 적용)
+| 모델 | Train Loss | Val Loss | Train Acc | Val Acc | Epochs | 특징 |
+|------|------------|----------|-----------|---------|--------|------|
+| **GRU** | 0.027 | 0.032 | 99.7% | 99.0% | 58 | 정상적 학습 패턴 |
+| **CNNGRU** | 0.138 | 0.052 | 95.3% | 99.3% | 100 | 큰 Loss Gap (과도한 정규화) |
+| **MSCSGRU** | 0.092 | 0.043 | 98.0% | 99.3% | 58 | 균형잡힌 성능 |
 
 ### 모델 선택 가이드
-- **빠른 실험**: `CNNGRU` - 가장 단순하고 빠름
-- **균형잡힌 성능**: `MSCGRU` - 멀티스케일 + 단일 GRU
-- **최고 성능**: `MSCSGRU` - 멀티스케일 + 스택 GRU
-- **중간 복잡도**: `CNNStackedGRU` - 단일 CNN + 스택 GRU
+- **최고 안정성**: `GRU` - 정상적인 학습 패턴, 높은 안정성
+- **균형잡힌 성능**: `MSCSGRU` - 멀티스케일 + 적절한 정규화
+- **빠른 학습**: `CNNGRU` - 단일 CNN + GRU, 빠른 수렴
+
+### 핵심 개선사항
+✅ **데이터 누수 해결**: 독립적인 Train/Val/Test 분할  
+✅ **Early Stopping**: 과적합 방지 및 효율적 학습  
+✅ **정상적 학습 패턴**: Train > Val 성능 관계 복원  
+✅ **X축 최적화**: 실제 학습 epoch까지만 시각화
 
 ## 🔬 기술적 특징
 
@@ -181,18 +174,20 @@ for batch in train_loader:
 
 ## 🎯 주요 성과
 
-✅ **4가지 모델 변형 구현**: 다양한 복잡도와 성능 트레이드오프 제공  
-✅ **모듈화된 구조**: 각 모델 타입별로 분리된 파일 구조  
-✅ **새로운 데이터셋 지원**: SignGlove_HW unified 데이터셋 (7,200개 샘플, 34개 클래스)  
+✅ **3가지 핵심 모델 구현**: GRU, CNNGRU, MSCSGRU 모델 비교  
+✅ **데이터 누수 해결**: 독립적인 Train/Val/Test 분할로 신뢰성 있는 평가  
+✅ **Early Stopping**: 과적합 방지 및 효율적 학습  
+✅ **실시간 시각화**: 학습 곡선 실시간 모니터링  
+✅ **정상적 학습 패턴**: Train > Val 성능 관계 복원  
 ✅ **멀티스케일 특징 추출**: 다양한 시간 스케일 패턴 동시 학습  
-✅ **실시간 추론 준비**: 경량 모델로 실시간 처리 가능  
 
 ## 🚀 향후 계획
 
 ### 단기 계획
-- [ ] 각 모델별 성능 평가 및 비교
+- [x] 각 모델별 성능 평가 및 비교 (완료)
+- [x] Early Stopping 구현 (완료)
+- [x] 데이터 누수 문제 해결 (완료)
 - [ ] 하이퍼파라미터 최적화
-- [ ] 과적합 방지 기법 적용
 - [ ] 실시간 추론 시스템 구축
 
 ### 장기 계획

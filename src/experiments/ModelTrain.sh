@@ -121,3 +121,4 @@ python3 LightningTrain.py \
 echo "✅ $MODEL_NAME 모델 학습 완료!"
 echo "📁 로그 파일: $LOG_FILE"
 
+

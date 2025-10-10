@@ -82,9 +82,20 @@ class DynamicDataModule(L.LightningDataModule):
                     y_train, y_val = y[train_idx], y[val_idx]
                     X_padding_train, X_padding_val = X_padding[train_idx], X_padding[val_idx]
                     
-                    # Create dummy test set (same as val for K-fold)
-                    X_test, y_test = X_val.copy(), y_val.copy()
-                    X_padding_test = X_padding_val.copy()
+                    # Create independent test set (20% of remaining data)
+                    test_size = 0.2
+                    val_test_size = len(val_idx)
+                    test_samples = int(val_test_size * test_size)
+                    test_idx = val_idx[:test_samples]
+                    val_idx = val_idx[test_samples:]
+                    
+                    X_test = X[test_idx]
+                    y_test = y[test_idx]
+                    X_padding_test = X_padding[test_idx]
+                    
+                    X_val = X[val_idx]
+                    y_val = y[val_idx]
+                    X_padding_val = X_padding[val_idx]
                     
                     return X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test
 

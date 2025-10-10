@@ -149,10 +149,11 @@ def plot_training_curves(metrics: Dict[str, List[float]], save_dir: str) -> None
     
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
-    # x축을 실제 데이터 길이에 맞게 제한
-    max_epochs = max(len(metrics['train_loss']) if metrics['train_loss'] else 0,
-                     len(metrics['val_loss']) if metrics['val_loss'] else 0)
-    plt.xlim(1, max_epochs)
+    # x축을 실제 학습된 epoch까지만 표시 (Early Stopping 고려)
+    train_epochs = len(metrics['train_loss']) if metrics['train_loss'] else 0
+    val_epochs = len(metrics['val_loss']) if metrics['val_loss'] else 0
+    actual_epochs = min(train_epochs, val_epochs) if train_epochs > 0 and val_epochs > 0 else max(train_epochs, val_epochs)
+    plt.xlim(1, actual_epochs)
     plt.title('Train vs Validation Loss (KLP)', fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=11)
@@ -181,11 +182,11 @@ def plot_training_curves(metrics: Dict[str, List[float]], save_dir: str) -> None
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
     plt.ylim(0, 1.05)
-    # x축을 실제 데이터 길이에 맞게 제한
-    max_epochs = max(len(metrics['train_acc']) if metrics['train_acc'] else 0,
-                     len(metrics['val_acc']) if metrics['val_acc'] else 0,
-                     len(metrics['val_f1']) if metrics['val_f1'] else 0)
-    plt.xlim(1, max_epochs)
+    # x축을 실제 학습된 epoch까지만 표시 (Early Stopping 고려)
+    train_epochs = len(metrics['train_acc']) if metrics['train_acc'] else 0
+    val_epochs = len(metrics['val_acc']) if metrics['val_acc'] else len(metrics['val_f1']) if metrics['val_f1'] else 0
+    actual_epochs = min(train_epochs, val_epochs) if train_epochs > 0 and val_epochs > 0 else max(train_epochs, val_epochs)
+    plt.xlim(1, actual_epochs)
     plt.title('Train vs Validation Accuracy (KLP)', fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=11)

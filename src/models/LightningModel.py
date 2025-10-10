@@ -27,8 +27,8 @@ class LitModel(L.LightningModule, ModelInfo):
         predictions = torch.argmax(logits, dim=-1)
         accuracy = (predictions == y).float().mean()
         
-        self.log("train/loss", loss, prog_bar=True)
-        self.log("train/accuracy", accuracy, prog_bar=True)
+        self.log("train/loss", loss, prog_bar=True, on_step=False, on_epoch=True)
+        self.log("train/accuracy", accuracy, prog_bar=True, on_step=False, on_epoch=True)
 
         return loss
 
@@ -86,10 +86,10 @@ class LitModel(L.LightningModule, ModelInfo):
         )  # f1-score
 
         # log metrics
-        self.log("val/loss", loss, prog_bar=True)
-        self.log("val/accuracy", torch.tensor(cat_acc).mean().item(), prog_bar=True)
-        self.log("val/f1_score", val_f1.mean().item(), prog_bar=True)
-        self.log("learning_rate", self.optimizer.param_groups[0]['lr'], prog_bar=True)
+        self.log("val/loss", loss, prog_bar=True, on_step=False, on_epoch=True)
+        self.log("val/accuracy", torch.tensor(cat_acc).mean().item(), prog_bar=True, on_step=False, on_epoch=True)
+        self.log("val/f1_score", val_f1.mean().item(), prog_bar=True, on_step=False, on_epoch=True)
+        self.log("learning_rate", self.optimizer.param_groups[0]['lr'], prog_bar=True, on_step=False, on_epoch=True)
 
         if isinstance(self.logger, WandbLogger):
             plot = wandb.plot.confusion_matrix(
@@ -125,9 +125,9 @@ class LitModel(L.LightningModule, ModelInfo):
         )  # f1-score
         
         # log metrics
-        self.log("test/loss", loss, prog_bar=True)
-        self.log("test/accuracy", torch.tensor(cat_acc).mean().item(), prog_bar=True)
-        self.log("test/f1_score", test_f1.mean().item(), prog_bar=True)
+        self.log("test/loss", loss, prog_bar=True, on_step=False, on_epoch=True)
+        self.log("test/accuracy", torch.tensor(cat_acc).mean().item(), prog_bar=True, on_step=False, on_epoch=True)
+        self.log("test/f1_score", test_f1.mean().item(), prog_bar=True, on_step=False, on_epoch=True)
         
         test_loss = loss
         return test_loss

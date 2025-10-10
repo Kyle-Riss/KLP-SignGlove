@@ -1,3 +1,13 @@
+🚀 GRU 모델 학습 시작...
+📊 학습 설정:
+  모델 타입: RNN
+  모델 이름: GRU
+  학습률: 0.001
+  히든 사이즈: 64
+  배치 사이즈: 64
+  에포크: 100
+  로그 파일: ../../training_output_RNN_GRU.log
+
 /home/billy/.local/lib/python3.10/site-packages/lightning_utilities/core/imports.py:14: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
   import pkg_resources
 GPU available: True (cuda), used: True
@@ -451,3 +461,5 @@ Classes: ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 
 │       test/f1_score       │    0.9823809862136841     │
 │         test/loss         │   0.032084692269563675    │
 └───────────────────────────┴───────────────────────────┘
+✅ GRU 모델 학습 완료!
+📁 로그 파일: ../../training_output_RNN_GRU.log
