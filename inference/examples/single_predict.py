@@ -22,7 +22,7 @@ def example_single_prediction():
     
     # 1. 추론 엔진 초기화
     print("\n1️⃣ 추론 엔진 초기화...")
-    model_path = "best_model/best_model.ckpt"
+    model_path = "src/experiments/checkpoints/best_model_epoch=57_val/loss=0.03-v2.ckpt"
     
     try:
         engine = SignGloveInference(
@@ -35,9 +35,9 @@ def example_single_prediction():
             target_timesteps=87,
             device='cpu'  # 또는 'cuda'
         )
-    except FileNotFoundError:
-        print(f"❌ 모델 파일을 찾을 수 없습니다: {model_path}")
-        print("   먼저 모델을 훈련하고 체크포인트를 저장하세요.")
+    except Exception as e:
+        print(f"❌ 모델 로딩 실패: {e}")
+        print(f"   모델 경로: {model_path}")
         return
     
     # 2. 테스트 데이터 생성 (실제로는 센서 데이터 사용)
