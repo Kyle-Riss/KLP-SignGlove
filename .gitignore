@@ -11,4 +11,8 @@ test.*
 /lightning_logs/*
 /src/experiments/server.py
 /src/experiments/client.py
-/venv/* 
+/venv/*
+/wandb/*
+/checkpoints/*
+*.log
+*.ckpt 

@@ -19,6 +19,7 @@ from src.models.GRUModels import GRU, StackedGRU
 from src.models.LSTMModels import LSTM, StackedLSTM
 from src.models.EncoderModels import TransformerEncoder, CNNEncoder, HybridEncoder
 from src.models.MSCSGRUModels import MSCSGRU, MSCGRU, CNNGRU, CNNStackedGRU
+from src.models.MSCSGRUModels_ScaleAware import MSCSGRU_ScaleAware, MSCSGRU_ScaleHard, MSCGRU_ScaleAware
 
 
 parser = argparse.ArgumentParser(description="KLP training entrypoint (ASL-style)")
@@ -90,6 +91,10 @@ def get_model(model_name: str):
         "MSCGRU": (MSCGRU, params_common),
         "CNNGRU": (CNNGRU, params_common),
         "CNNStackedGRU": (CNNStackedGRU, params_common),
+        # Scale-Aware models
+        "MSCSGRU_ScaleAware": (MSCSGRU_ScaleAware, params_common | {"use_hard_functions": False}),
+        "MSCSGRU_ScaleHard": (MSCSGRU_ScaleHard, params_common),
+        "MSCGRU_ScaleAware": (MSCGRU_ScaleAware, params_common | {"use_hard_functions": False}),
     }
 
     if model_name not in mapping:
