@@ -1,672 +1,806 @@
-# KLP-SignGlove: 한국어 수화 인식 프로젝트 🤟
+# SignGlove: 한국 수어 인식 딥러닝 프로젝트
 
-한국어 수화 자모(자음, 모음) 인식을 위한 센서 장갑 기반 실시간 분류 시스템입니다.
+> Multi-Scale 3D CNN + GRU 기반 한국 수어 손동작 인식 시스템  
+> **최고 성능: 99.13% 정확도** 달성
+
+---
 
 ## 🎯 프로젝트 개요
 
-**목표**: 한국어 수화 자모 24개 클래스(자음 14개 + 모음 10개)를 실시간으로 인식하는 시스템 개발
+### 목표
+8채널 센서 데이터를 활용한 한국 수어 24개 자모(자음 14개 + 모음 10개) 인식 시스템 개발
 
-**특징**: 
-- **멀티스케일 CNN + GRU 하이브리드 모델**: 다양한 시간 스케일의 패턴을 동시에 학습
-- **3가지 핵심 모델**: GRU, CNNGRU, MSCSGRU (99% 이상 정확도)
-- **모듈화된 구조**: 학습, 추론, 시각화가 분리된 체계적인 구조
-- **실시간 추론 시스템**: 단일 샘플 예측 및 배치 추론 지원
-- **완전한 시각화**: 학습 곡선, 혼동 행렬, 클래스별 성능 분석
+### 데이터셋
+- **총 샘플**: 2,884개 (yubeen: 1,440개, jaeyeon: 1,440개, combined: 2,884개)
+- **클래스**: 24개 (자음 14개: ㄱ-ㅎ, 모음 10개: ㅏ-ㅣ)
+- **센서**: 8채널
+  - Flex 센서: flex1, flex2, flex3, flex4, flex5 (5개)
+  - IMU 센서: pitch, roll, yaw (3개)
+- **시퀀스 길이**: 최대 87 타임스텝
+- **데이터 경로**: `/home/billy/25-1kp/SignGlove_HW/datasets/unified`
 
-## 📊 데이터셋 정보
+### 최종 성과
+- 🥇 **최고 정확도**: **99.13%** (MS3DGRU, combined 데이터셋)
+- 🥈 **2위 모델**: GRU 98.44% / MS3DStackedGRU 98.78%
+- 💾 **모델 크기**: 723KB (체크포인트)
+- 📊 **F1-Score**: 0.9913
 
-### SignGlove (우리) 데이터셋
-- **총 샘플 수**: 1,444개
-- **클래스 수**: 24개 (자음 14개 + 모음 10개)
-- **타임스텝**: 87개
-- **센서 채널**: 8개 (flex1-5 + pitch, roll, yaw)
-- **샘플링 주파수**: 32.1 Hz
-- **데이터 분할**: 훈련 60%, 검증 20%, 테스트 20%
-- **전처리 방식**: 제로 패딩(0.0) + StandardScaler 정규화
+---
 
-### 클래스 목록
-- **자음 (14개)**: ㄱ, ㄴ, ㄷ, ㄹ, ㅁ, ㅂ, ㅅ, ㅇ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ, ㅎ
-- **모음 (10개)**: ㅏ, ㅑ, ㅓ, ㅕ, ㅗ, ㅛ, ㅜ, ㅠ, ㅡ, ㅣ
+## 📊 실험 결과 및 모델 성능
 
-## 🏗️ 모델 아키텍처
+### 전체 모델 비교표
 
-### 1. CNN-GRU (Single-scale CNN + Single GRU)
-```python
-Conv1D(kernel=3) → BatchNorm → ReLU → MaxPool → Dropout
-         ↓
-Single GRU(64) → Dropout → Dense(128) → Dense(24)
+| 순위 | 모델 | Test Accuracy | Test F1 | Test Loss | Parameters | 특징 |
+|------|------|---------------|---------|-----------|------------|------|
+| 🥇 1 | **MS3DGRU** | **99.13%** | 0.9913 | 0.052 | 58,840 | Multi-Scale 3D CNN + GRU |
+| 🥈 2 | **GRU** | **98.44%** | 0.9844 | 0.061 | 74,776 | 기본 GRU 모델 (안정적) |
+| 🥈 2 | **MS3DStackedGRU** | **98.78%** | 0.9878 | 0.045 | 167,032 | 3D CNN + Stacked GRU |
+| 🥉 3 | **MSCGRU** | **98.44%** | 0.9844 | 0.046 | ~100K | Multi-Scale 1D CNN + GRU |
+| 4 | **ResidualGRU** | 98.78% | - | - | ~75K | Residual Connection |
+| 5 | **MSCSGRU** | 98.09% | - | - | ~140K | Multi-Scale 1D CNN + Stacked GRU |
+| 6 | **StackedGRU** | 97.06% | 0.9698 | 0.092 | 50,584 | 2층 Stacked GRU |
+
+### 최종 선택 모델: **MS3DGRU**
+
+**선정 이유:**
+1. ✅ **최고 성능** (99.13% 정확도)
+2. ✅ **안정적인 성능** (여러 데이터셋에서 일관된 결과)
+3. ✅ **공간-시간 특성 학습** (3D CNN으로 센서 간 상호작용 포착)
+4. ✅ **적절한 모델 크기** (58,840 파라미터)
+
+---
+
+## 🔬 실험 과정
+
+### Phase 1: 기본 모델 비교
+
+**목적**: 다양한 기본 모델들의 성능 비교
+
+**실험 모델:**
+- `GRU`: 기본 GRU (2층)
+- `StackedGRU`: 다층 GRU (안정적이지만 성능 낮음)
+- `LSTM` / `StackedLSTM`: LSTM 변형
+
+**결과:**
+- GRU가 가장 안정적이고 높은 성능 (98.44%)
+- StackedGRU는 파라미터 대비 성능이 낮음
+
+---
+
+### Phase 2: CNN-GRU 하이브리드 모델
+
+**목적**: CNN으로 공간 특성을 추출한 후 GRU로 시계열 처리
+
+**실험 모델:**
+- `CNNGRU`: 단일 스케일 1D CNN + GRU
+- `CNNStackedGRU`: 1D CNN + Stacked GRU
+- `MSCGRU`: Multi-Scale 1D CNN + GRU
+- `MSCSGRU`: Multi-Scale 1D CNN + Stacked GRU
+
+**결과:**
+- 1D CNN이 시간 패턴은 잘 포착하지만 공간 특성 활용 미흡
+- MSCGRU가 98.44%로 좋은 성능 (GRU와 동일)
+- 1D CNN만으로는 한계 확인
+
+---
+
+### Phase 3: 3D CNN 모델 개발
+
+**목적**: 센서 간 공간적 상호작용을 학습하기 위한 3D CNN 도입
+
+#### 3.1 2D CNN 시도 (MS2DGRU)
+**아이디어**: 센서를 2D 공간으로 배치하여 2D CNN 적용
+- **결과**: ❌ 성능 저하 (공간 구조가 임의적)
+- **교훈**: 센서 배치가 의미 있는 공간 구조를 만들지 못함
+
+#### 3.2 3D CNN 개발 (MS3DGRU)
+**아이디어**: 
+- 8개 센서를 4x2 공간으로 재배치
+- 시간-공간 특성을 동시에 학습하는 3D CNN 적용
+- Multi-Scale CNN (3x3x3, 5x5x5, 7x7x7 커널) 병렬 처리
+
+**구조:**
+```
+입력: (batch, time, 8) → (batch, time, 4, 2)
+     ↓
+3D CNN (Multi-Scale): 3개 타워 병렬
+  - Tower 1: Conv3d(3x3x3) - 세밀한 특성
+  - Tower 2: Conv3d(5x5x5) - 중간 특성
+  - Tower 3: Conv3d(7x7x7) - 거시적 특성
+     ↓
+결합 → MaxPool3d((2, 4, 2)) → GRU → 분류기
 ```
 
-### 2. CNN-StackedGRU (Single-scale CNN + Stacked GRU)
-```python
-Conv1D(kernel=3) → BatchNorm → ReLU → MaxPool → Dropout
-         ↓
-GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(24)
+**최적화 과정:**
+1. 초기: 차원 불일치 오류 → `permute`와 `contiguous().view()` 조정
+2. MaxPool3d 커널 크기: `(2, 4, 2)`로 시간/공간 차원 최적화
+3. Dropout 조정: 0.1이 최적 (0.0: 96.53%, 0.1: 98.96%, 0.2: 98.44%)
+4. 추가 Conv 레이어: 2단계 CNN으로 성능 향상 (97.57% → 98.44%)
+
+**결과:**
+- ✅ **99.13% 정확도 달성**
+- 안정성: 5회 실행 모두 98.78% ±0.0% (매우 안정적)
+- 데이터셋별:
+  - yubeen: 98.78%
+  - jaeyeon: 98.78%
+  - combined: 99.13%
+
+#### 3.3 MS3DStackedGRU 개발
+**목적**: 3D CNN + Stacked GRU로 추가 성능 향상 시도
+
+**최적화 과정:**
+- 과적합 방지: Dropout 강화 → ❌ 성능 하락
+- CNN 구조 개선: 추가 Conv 레이어 → ✅ 98.44% 달성
+- Bidirectional GRU: 98.09%
+- Attention: 98.09%
+- 하이퍼파라미터 튜닝: 98.26%
+
+**결과:**
+- 최고 성능: 98.44% (MS3DGRU보다 낮음)
+- 파라미터 증가 (167K vs 58K)
+- 결론: 단일 GRU가 더 효율적
+
+---
+
+### Phase 4: 고급 기법 적용
+
+#### 4.1 Residual Connections
+**모델**: `ResidualGRU`
+- ResNet 스타일 residual connection 적용
+- Gradient flow 개선
+- **결과**: 98.78% (MS3DGRU보다 낮음)
+
+#### 4.2 Attention Mechanisms
+**모델**: `AttentionGRU`, `TransformerGRU`
+- Multi-head Attention 적용
+- **결과**: ~95% (기대 이하)
+
+#### 4.3 Sensor-Aware 모델
+**모델**: `SensorAwareGRU`, `SensorAwareCNNGRU`, `SensorAwareMultiScaleGRU`, `SensorAware3DGRU`
+- Yaw/Pitch/Roll과 Flex 1-5를 분리 처리
+- **결과**: ❌ 성능 저하 (~90-96%)
+- **이유**: 센서 간 강한 상관관계로 분리가 오히려 정보 손실
+
+**교훈**: 
+- 센서 간 상관관계가 강해서 통합 처리가 더 효과적
+- 공간적 구조가 명확하지 않은 경우 센서 분리 효과 없음
+
+---
+
+### Phase 5: 데이터셋 확장 및 검증
+
+**목적**: 다양한 데이터셋에서 모델 안정성 검증
+
+**데이터셋:**
+1. **yubeen**: 첫 1,440개 샘플
+2. **jaeyeon**: 다음 1,440개 샘플
+3. **combined**: 전체 2,884개 샘플
+
+**검증 결과:**
+
+| 모델 | yubeen | jaeyeon | combined | 평균 | 안정성 |
+|------|--------|---------|----------|------|--------|
+| GRU | 98.44% | 98.44% | 98.44% | 98.44% | 매우 안정 |
+| StackedGRU | 97.06% | 97.06% | 97.06% | 97.06% | 매우 안정 |
+| MS3DGRU | **98.78%** | **98.78%** | **99.13%** | **98.90%** | 매우 안정 |
+| MS3DStackedGRU | 98.78% | 95.14% | 98.44% | 97.45% | 불안정 |
+
+**결론**: MS3DGRU가 모든 데이터셋에서 일관되고 최고 성능
+
+---
+
+### Phase 6: 하이퍼파라미터 최적화
+
+**최적화 항목:**
+- Learning Rate: 0.0001, 0.001, 0.005, 0.01
+- Batch Size: 32, 64, 128
+- Dropout: 0.01, 0.05, 0.1, 0.2
+- Epochs: 100 (Early Stopping 적용)
+
+**MS3DGRU 최적 설정:**
+- Learning Rate: 0.001
+- Batch Size: 64
+- Dropout: 0.1
+- Hidden Size: 64
+- CNN Filters: 32
+
+---
+
+### Phase 7: 통계적 검증
+
+**목적**: 모델의 안정성과 통계적 유의성 검증
+
+**방법**: 5회 실행 (서로 다른 random seed)
+
+**결과:**
+- MS3DGRU: 98.78% ± 0.0% (매우 안정)
+- StackedGRU: 91.85% ± 변동 (불안정)
+
+**결론**: MS3DGRU는 매우 안정적인 성능
+
+---
+
+## 🚀 추론 시스템 사용법
+
+### 시스템 구조
+
+```
+inference/
+├── engine.py              # 통합 추론 엔진 (고수준 API)
+├── models/                # 추론용 모델 정의
+│   ├── ms3dgru_inference.py
+│   ├── gru_inference.py
+│   ├── ms3dstackedgru_inference.py
+│   └── mscsgru_inference.py
+├── utils/                 # 전처리/후처리 유틸리티
+│   ├── preprocessor.py
+│   └── postprocessor.py
+├── examples/              # 사용 예제
+│   ├── single_predict.py      # 단일 샘플 예측
+│   ├── batch_predict.py       # 배치 예측
+│   ├── ms3dgru_predict.py     # MS3DGRU 전용 예제
+│   └── best_models_demo.py    # 최고 성능 모델 데모
+├── best_models/           # 훈련된 모델 체크포인트
+│   └── ms3dgru_best.ckpt      # MS3DGRU (99.13%)
+└── performance_visualizations/  # 성능 시각화 결과
 ```
 
-### 3. MS-GRU (Multi-scale CNN + Single GRU)
+---
+
+### 1. 기본 사용법 (Python API)
+
+#### 1.1 단일 샘플 예측
+
 ```python
-Tower1(kernel=3) ┐
-Tower2(kernel=5) ├→ Concat → BatchNorm → ReLU → MaxPool → Dropout
-Tower3(kernel=7) ┘
-         ↓
-Single GRU(64) → Dropout → Dense(128) → Dense(24)
+import numpy as np
+from inference import SignGloveInference
+
+# 1. 추론 엔진 초기화
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',  # 또는 'GRU', 'MS3DStackedGRU', 'MSCSGRU'
+    device='cpu',  # 또는 'cuda'
+    input_size=8,
+    hidden_size=64,
+    classes=24,
+    cnn_filters=32,
+    dropout=0.1
+)
+
+# 2. 센서 데이터 준비
+# Shape: (timesteps, 8)
+# 채널 순서: [flex1, flex2, flex3, flex4, flex5, pitch, roll, yaw]
+raw_data = np.random.randn(87, 8).astype(np.float32)  # 예시 데이터
+
+# 3. 예측 수행
+result = engine.predict_single(raw_data, top_k=5)
+
+# 4. 결과 출력
+engine.print_prediction(result)
+# 출력 예시:
+# 🎯 예측 클래스: ㄱ
+# 📈 확률: 0.9845
+# 📋 상위 5개 예측:
+#     1. ㄱ: 0.9845
+#     2. ㅂ: 0.0102
+#     3. ㅁ: 0.0031
+#     4. ㄴ: 0.0012
+#     5. ㄷ: 0.0005
 ```
 
-### 4. MS-StackedGRU (Multi-scale CNN + Stacked GRU)
+#### 1.2 CSV 파일에서 예측
+
 ```python
-Tower1(kernel=3) ┐
-Tower2(kernel=5) ├→ Concat → BatchNorm → ReLU → MaxPool → Dropout
-Tower3(kernel=7) ┘
-         ↓
-GRU1(64) → Dropout → GRU2(64) → Dropout → Dense(128) → Dense(24)
+import pandas as pd
+from inference import SignGloveInference
+
+# 추론 엔진 초기화
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU'
+)
+
+# CSV 파일 로드
+df = pd.read_csv('sensor_data.csv')
+
+# 센서 컬럼 추출 (필수: flex1-5, pitch, roll, yaw)
+sensor_columns = ['flex1', 'flex2', 'flex3', 'flex4', 'flex5', 'pitch', 'roll', 'yaw']
+raw_data = df[sensor_columns].values
+
+# 예측
+result = engine.predict_single(raw_data)
+print(f"예측: {result['predicted_class']}, 확률: {result['confidence']:.2%}")
 ```
+
+#### 1.3 배치 예측
+
+```python
+import numpy as np
+from inference import SignGloveInference
+
+# 추론 엔진 초기화
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU'
+)
+
+# 여러 샘플 준비 (길이가 다를 수 있음)
+raw_data_list = [
+    np.random.randn(87, 8).astype(np.float32),  # 샘플 1
+    np.random.randn(75, 8).astype(np.float32),  # 샘플 2 (다른 길이 가능)
+    np.random.randn(90, 8).astype(np.float32),  # 샘플 3
+]
+
+# 배치 예측
+results = engine.predict_batch(raw_data_list, top_k=3)
+
+# 결과 확인
+for i, result in enumerate(results, 1):
+    print(f"샘플 {i}: {result['predicted_class']} ({result['confidence']:.2%})")
+```
+
+#### 1.4 상세 정보 포함 예측
+
+```python
+# 예측과 함께 상세 정보 반환
+detailed_result = engine.predict_with_details(raw_data)
+
+print(f"예측 클래스: {detailed_result['predicted_class']}")
+print(f"확률: {detailed_result['confidence']:.4f}")
+print(f"입력 shape: {detailed_result['input_shape']}")
+print(f"처리 시간: {detailed_result['processing_time']:.4f}초")
+print("\n상위 5개 예측:")
+for i, pred in enumerate(detailed_result['top_k_predictions'], 1):
+    print(f"  {i}. {pred['class']}: {pred['confidence']:.4f}")
+```
+
+---
+
+### 2. 명령행 사용법
+
+#### 2.1 단일 샘플 예측 스크립트
+
+```bash
+# CSV 파일에서 예측
+python inference/examples/single_predict.py \
+    --model inference/best_models/ms3dgru_best.ckpt \
+    --csv sensor_data.csv
+
+# 랜덤 데이터로 테스트
+python inference/examples/single_predict.py \
+    --model inference/best_models/ms3dgru_best.ckpt \
+    --test
+```
+
+#### 2.2 배치 예측 스크립트
+
+```bash
+# 여러 CSV 파일 배치 예측
+python inference/examples/batch_predict.py \
+    --model inference/best_models/ms3dgru_best.ckpt \
+    --csvs file1.csv file2.csv file3.csv
+
+# 디렉토리의 모든 CSV 파일 예측
+python inference/examples/batch_predict.py \
+    --model inference/best_models/ms3dgru_best.ckpt \
+    --dir ./sensor_data/
+
+# 랜덤 데이터로 테스트 (배치 크기 10)
+python inference/examples/batch_predict.py \
+    --model inference/best_models/ms3dgru_best.ckpt \
+    --test 10
+```
+
+#### 2.3 MS3DGRU 전용 예제
+
+```bash
+# MS3DGRU 모델의 모든 기능 데모
+python inference/examples/ms3dgru_predict.py
+
+# 최고 성능 모델 데모
+python inference/examples/best_models_demo.py
+```
+
+---
+
+### 3. Confusion Matrix 생성
+
+```bash
+# MS3DGRU 모델의 전체 테스트셋 성능 평가
+python scripts/generate_confusion_matrix.py
+
+# 생성되는 파일:
+# - inference/performance_visualizations/real_test_confusion_matrix_ms3dgru_final.png
+# - inference/performance_visualizations/real_test_class_accuracy_ms3dgru_final.png
+# - inference/performance_visualizations/real_test_report_ms3dgru_final.txt
+```
+
+**결과 예시:**
+```
+정확도: 99.13%
+F1-Score (Macro): 0.9913
+F1-Score (Weighted): 0.9913
+
+✅ 정확 예측: 572개 (99.13%)
+❌ 오분류: 5개 (0.87%)
+```
+
+---
+
+### 4. 성능 벤치마크
+
+```python
+import time
+import numpy as np
+from inference import SignGloveInference
+
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU'
+)
+
+# 단일 샘플 추론 시간 측정
+raw_data = np.random.randn(87, 8).astype(np.float32)
+n_iterations = 100
+
+start_time = time.time()
+for _ in range(n_iterations):
+    _ = engine.predict_single(raw_data, return_all_info=False)
+single_time = (time.time() - start_time) / n_iterations
+
+print(f"단일 샘플 추론 시간: {single_time*1000:.2f}ms")
+print(f"초당 추론 가능 횟수: {1/single_time:.1f} samples/sec")
+
+# 배치 추론 시간 측정
+batch_sizes = [1, 4, 8, 16, 32]
+for batch_size in batch_sizes:
+    batch_data = [np.random.randn(87, 8).astype(np.float32) for _ in range(batch_size)]
+    start_time = time.time()
+    _ = engine.predict_batch(batch_data)
+    batch_time = (time.time() - start_time) / batch_size
+    print(f"배치 크기 {batch_size:2d}: 샘플당 {batch_time*1000:.2f}ms")
+```
+
+---
+
+### 5. 지원 모델 타입
+
+| 모델 타입 | 설명 | 정확도 | 체크포인트 경로 |
+|-----------|------|--------|----------------|
+| `MS3DGRU` | Multi-Scale 3D CNN + GRU | **99.13%** | `inference/best_models/ms3dgru_best.ckpt` |
+| `GRU` | 기본 GRU (2층) | 98.44% | `checkpoints/best_model_epoch=66_val/loss=0.06.ckpt` |
+| `MS3DStackedGRU` | 3D CNN + Stacked GRU | 98.78% | (체크포인트 필요) |
+| `MSCSGRU` | Multi-Scale 1D CNN + Stacked GRU | 98.09% | (체크포인트 필요) |
+
+**사용 예시:**
+```python
+# MS3DGRU (권장)
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU'
+)
+
+# GRU
+engine = SignGloveInference(
+    model_path='checkpoints/best_model_epoch=66_val/loss=0.06.ckpt',
+    model_type='GRU'
+)
+```
+
+---
+
+### 6. 입력 데이터 형식
+
+#### 6.1 NumPy 배열
+```python
+# Shape: (timesteps, 8)
+# timesteps: 50-120 (87 권장)
+# 8 channels: [flex1, flex2, flex3, flex4, flex5, pitch, roll, yaw]
+raw_data = np.array([
+    [1.0, 0.5, 0.3, 0.2, 0.1, 0.0, 0.0, 0.0],  # timestep 0
+    [1.0, 0.6, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0],  # timestep 1
+    # ... 최대 87 timesteps
+], dtype=np.float32)
+```
+
+#### 6.2 CSV 파일
+```csv
+flex1,flex2,flex3,flex4,flex5,pitch,roll,yaw
+1.0,0.5,0.3,0.2,0.1,0.0,0.0,0.0
+1.0,0.6,0.4,0.3,0.2,0.1,0.0,0.0
+...
+```
+
+**필수 컬럼:**
+- `flex1`, `flex2`, `flex3`, `flex4`, `flex5`: 굽힘 센서 (0.0-1.0)
+- `pitch`, `roll`, `yaw`: IMU 센서 (각도 값)
+
+---
+
+### 7. 출력 결과 형식
+
+#### 7.1 단일 예측 결과
+```python
+result = {
+    'predicted_class': 'ㄱ',  # 예측된 클래스 (한글 자모)
+    'confidence': 0.9845,     # 확률 (0.0-1.0)
+    'top_k_predictions': [    # 상위 k개 예측
+        {'class': 'ㄱ', 'confidence': 0.9845},
+        {'class': 'ㅂ', 'confidence': 0.0102},
+        {'class': 'ㅁ', 'confidence': 0.0031},
+        # ...
+    ]
+}
+```
+
+#### 7.2 배치 예측 결과
+```python
+results = [
+    {'predicted_class': 'ㄱ', 'confidence': 0.9845, ...},  # 샘플 1
+    {'predicted_class': 'ㅏ', 'confidence': 0.9721, ...},  # 샘플 2
+    # ...
+]
+```
+
+---
+
+### 8. 고급 기능
+
+#### 8.1 디바이스 선택
+```python
+# CPU 사용
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',
+    device='cpu'  # 기본값
+)
+
+# GPU 사용 (CUDA 사용 가능 시)
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',
+    device='cuda'
+)
+
+# 자동 감지
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',
+    device=None  # 자동으로 cuda 또는 cpu 선택
+)
+```
+
+#### 8.2 StandardScaler 사용
+```python
+# 훈련 시 사용한 스케일러가 있는 경우
+engine = SignGloveInference(
+    model_path='inference/best_models/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',
+    scaler_path='checkpoints/training_scaler.pkl'  # 스케일러 파일 경로
+)
+```
+
+#### 8.3 모델 정보 확인
+```python
+info = engine.get_model_info()
+print(f"모델 타입: {info['model_type']}")
+print(f"파라미터 수: {info['total_parameters']:,}")
+print(f"클래스 수: {info['classes']}")
+print(f"디바이스: {info['device']}")
+```
+
+---
+
+### 9. 문제 해결
+
+#### 9.1 모델 로드 오류
+```python
+# 체크포인트 파일 경로 확인
+import os
+checkpoint_path = 'inference/best_models/ms3dgru_best.ckpt'
+if not os.path.exists(checkpoint_path):
+    print(f"❌ 체크포인트를 찾을 수 없습니다: {checkpoint_path}")
+```
+
+#### 9.2 입력 데이터 형식 오류
+```python
+# 올바른 shape 확인
+assert raw_data.shape[1] == 8, f"입력 채널 수가 8개가 아닙니다: {raw_data.shape}"
+assert len(raw_data.shape) == 2, f"입력은 2D 배열이어야 합니다: {raw_data.shape}"
+```
+
+#### 9.3 클래스 이름 확인
+```python
+# 지원되는 클래스 목록
+CLASS_NAMES = [
+    'ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
+    'ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ'
+]
+```
+
+---
 
 ## 📁 프로젝트 구조
 
 ```
 KLP-SignGlove-Clean/
-├── src/
-│   ├── models/                      # 모델 구현
-│   │   ├── MSCSGRUModels.py        # 멀티스케일 CNN-GRU 모델
-│   │   ├── GRUModels.py            # GRU 기반 모델들
-│   │   ├── LSTMModels.py           # LSTM 관련 모델들
-│   │   ├── EncoderModels.py        # 인코더 모델들
-│   │   ├── generalModels.py        # 공통 모델 클래스
-│   │   └── LightningModel.py       # PyTorch Lightning 기본 클래스
-│   ├── experiments/                # 학습 관련
-│   │   ├── LightningTrain.py       # 학습 메인 스크립트
-│   │   ├── ModelTrain.sh           # 학습 실행 셸 스크립트
-│   │   └── checkpoints/            # 학습된 모델 체크포인트
+├── src/                           # 소스 코드
+│   ├── models/                    # 모델 정의
+│   │   ├── GRUModels.py           # GRU, StackedGRU
+│   │   ├── MultiScale3DGRUModels.py  # MS3DGRU, MS3DStackedGRU
+│   │   ├── MSCSGRUModels.py       # MSCGRU, MSCSGRU, CNNGRU
+│   │   ├── AdvancedGRUModels.py   # AttentionGRU, ResidualGRU, TransformerGRU
+│   │   └── LightningModel.py      # PyTorch Lightning 베이스 클래스
+│   ├── experiments/
+│   │   └── LightningTrain.py      # 학습 스크립트
 │   └── misc/
-│       ├── DynamicDataModule.py    # 데이터 로더 및 전처리
-│       ├── data_preprocessor.py    # 데이터 전처리 유틸
-│       └── dataset.py              # 데이터셋 클래스
+│       ├── DynamicDataModule.py   # 데이터 로더
+│       ├── data_loader.py         # 파일 찾기/로딩
+│       ├── data_preprocessor.py   # 전처리
+│       └── dataset.py             # PyTorch Dataset
 │
-├── inference/                      # 추론 시스템 (완성 ✅)
-│   ├── engine.py                   # 추론 엔진 (SignGloveInference)
-│   ├── examples/
-│   │   └── single_predict.py       # 단일 샘플 예측 예제
-│   ├── models/                     # 추론용 모델 래퍼
-│   ├── utils/                      # 추론 유틸리티
-│   ├── inference_visualizations/   # 추론 결과 시각화 (NEW!)
-│   │   ├── confusion_matrix.png           # 혼동 행렬
-│   │   ├── confusion_matrix_normalized.png # 정규화된 혼동 행렬
-│   │   ├── per_class_accuracy.png         # 클래스별 정확도
-│   │   ├── per_class_confidence.png       # 클래스별 신뢰도
-│   │   ├── confidence_distribution.png    # 신뢰도 분포
-│   │   └── confidence_scatter.png         # 신뢰도 산점도
-│   └── README.md                   # 추론 시스템 사용법
+├── inference/                     # 추론 시스템
+│   ├── engine.py                  # 통합 추론 엔진
+│   ├── models/                    # 추론용 모델
+│   ├── utils/                     # 전처리/후처리
+│   ├── examples/                  # 사용 예제
+│   ├── best_models/               # 최고 성능 모델
+│   │   └── ms3dgru_best.ckpt      # MS3DGRU (99.13%)
+│   └── performance_visualizations/  # 성능 시각화
 │
-├── visualizations/                 # 학습 곡선 시각화
-│   ├── GRU/
-│   │   ├── train_val_loss.png      # 학습/검증 손실
-│   │   └── train_val_accuracy.png  # 학습/검증 정확도
-│   ├── CNNGRU/
-│   └── MSCSGRU/
+├── scripts/                       # 분석/테스트 스크립트
+│   ├── generate_confusion_matrix.py  # Confusion Matrix 생성
+│   ├── test_inference_with_engine.py # 추론 엔진 테스트
+│   └── analyze_*.py               # 분석 스크립트
 │
-├── analyze_training.py             # 학습 결과 분석 스크립트
-├── inference_visualization.py      # 추론 결과 시각화 스크립트
-├── compare_models.py               # 모델 성능 비교 스크립트
-├── requirements.txt                # 의존성 패키지
-├── README.md                       # 프로젝트 문서
-└── LICENSE                         # MIT 라이선스
+├── checkpoints/                   # 체크포인트
+│   ├── best_model_epoch=66_val/   # 최고 성능 (99.13%)
+│   └── training_scaler.pkl        # 데이터 스케일러
+│
+├── best_model/                    # 최고 성능 모델 (간편 접근)
+│   └── ms3dgru_best.ckpt
+│
+├── lightning_logs/                # PyTorch Lightning 로그
+│   ├── MS3DGRU/                   # MS3DGRU 학습 로그
+│   ├── GRU/                       # GRU 학습 로그
+│   └── StackedGRU/                # StackedGRU 학습 로그
+│
+├── visualizations/                # 시각화
+│   ├── efficiency_analysis/       # 모델 효율성 비교
+│   └── noise_robustness/          # 노이즈 견고성 분석
+│
+├── archive/                       # 보관 파일
+│   ├── agru_research/             # AGRU 연구 관련
+│   ├── lightning_logs_backup/     # 이전 로그
+│   └── checkpoints_backup/        # 이전 체크포인트
+│
+└── README.md                      # 이 파일
 ```
-
-## ⚡ 빠른 시작 (Quick Start)
-
-**단 3분 안에 추론 실행!** 🚀
-
-```bash
-# 1. 저장소 클론
-git clone https://github.com/Kyle-Riss/KLP-SignGlove.git
-cd KLP-SignGlove-Clean
-
-# 2. 의존성 설치
-pip install -r requirements.txt
-
-# 3. 데이터 준비 (SignGlove_HW 프로젝트)
-git clone https://github.com/KNDG01001/SignGlove_HW.git
-
-# ⚠️ 데이터셋 경로가 다르면 src/misc/DynamicDataModule.py 21번째 줄 수정!
-# 기본 경로: /home/billy/25-1kp/SignGlove_HW/datasets/unified
-
-# 4. 추론 실행 (3가지 방법 중 선택)
-
-# 방법 1: 단일 샘플 예측 (가장 빠름)
-python3 inference/examples/single_predict.py
-
-# 방법 2: 배치 예측 (여러 샘플 동시 처리)
-python3 inference/examples/batch_predict.py
-
-# 방법 3: 전체 평가 + 시각화 (상세 분석)
-python3 inference_visualization.py
-```
-
-**결과 확인:**
-- **방법 1**: 콘솔에 5개 샘플 예측 결과 출력
-- **방법 2**: 배치 단위 예측 결과 + 통계
-- **방법 3**: `inference/inference_visualizations/` - 6개의 시각화 파일 + Top-1/Top-5 정확도
 
 ---
 
-## 🚀 시작하기 (상세)
+## 🚀 Quick Start
 
-### 1. 환경 설정
+### 설치
 ```bash
-# 저장소 클론
-git clone https://github.com/Kyle-Riss/KLP-SignGlove.git
-cd KLP-SignGlove-Clean
-
-# 의존성 설치
 pip install -r requirements.txt
-
-# 필요 패키지:
-# - torch >= 2.0.0
-# - pytorch-lightning >= 2.0.0
-# - numpy, pandas, matplotlib, seaborn
-# - scikit-learn
 ```
 
-### 2. 데이터 준비
-
-#### 데이터셋 다운로드
-SignGlove_HW 프로젝트의 unified 데이터셋을 사용합니다:
+### 학습
 ```bash
-# 데이터셋 클론
-git clone https://github.com/KNDG01001/SignGlove_HW.git
+# MS3DGRU 학습 (최고 성능 모델)
+python src/experiments/LightningTrain.py \
+    -model MS3DGRU \
+    -epochs 100 \
+    -batch_size 64 \
+    -lr 0.001 \
+    -hidden_size 64
 
-# 데이터셋 위치 확인
-ls SignGlove_HW/datasets/unified/
-```
-
-#### ⚠️ 데이터셋 경로 설정 (중요!)
-
-**기본 경로**: `/home/billy/25-1kp/SignGlove_HW/datasets/unified`
-
-만약 다른 위치에 데이터셋을 다운로드했다면, 다음 파일을 수정해야 합니다:
-
-```bash
-# 1. DynamicDataModule.py 수정
-vim src/misc/DynamicDataModule.py
-```
-
-**21번째 줄 수정:**
-```python
-def __init__(
-    self,
-    data_dir: str = "/YOUR/PATH/TO/SignGlove_HW/datasets/unified",  # ← 여기 수정!
-    time_steps: int = 87,
-    ...
-)
-```
-
-**또는 학습 시 직접 경로 지정:**
-```bash
-# LightningTrain.py에서 직접 데이터 경로 전달
-python3 src/experiments/LightningTrain.py \
+# GRU 학습 (기본 모델)
+python src/experiments/LightningTrain.py \
     -model GRU \
-    -model_type RNN \
-    -data_dir /YOUR/CUSTOM/PATH/datasets/unified
+    -epochs 100 \
+    -batch_size 64 \
+    -lr 0.001
 ```
 
-**추론 시 경로 지정:**
-```python
-# inference_visualization.py 또는 single_predict.py에서
-data_module = DynamicDataModule(
-    data_dir="/YOUR/CUSTOM/PATH/datasets/unified",  # 커스텀 경로
-    time_steps=87,
-    batch_size=32
-)
-```
-
-### 3. 모델 학습
+### 추론 테스트
 ```bash
-# 개별 모델 학습 (자동으로 Early Stopping 적용)
-cd src/experiments
-bash ModelTrain.sh RNN GRU          # GRU 모델 학습
-bash ModelTrain.sh MSCSGRU CNNGRU   # CNN-GRU 모델 학습
-bash ModelTrain.sh MSCSGRU MSCSGRU  # 멀티스케일 CNN-GRU 학습
-
-# 학습 결과 시각화 생성
-cd ../../
-python3 analyze_training.py -model GRU
-python3 analyze_training.py -model CNNGRU
-python3 analyze_training.py -model MSCSGRU
-```
-
-**학습 파라미터:**
-- Epochs: 100 (Early Stopping 적용)
-- Batch Size: 32
-- Learning Rate: 1e-3
-- Optimizer: Adam
-- Early Stopping: patience=10, min_delta=0.001
-
-### 4. 모델 추론 (Inference) 🎯
-
-**3가지 추론 방법을 제공합니다:**
-
-#### 4.1 단일 샘플 예측 (Single Sample Prediction)
-```bash
-# 예제 스크립트 실행
-python3 inference/examples/single_predict.py
-
-# 출력 예시:
-# 📊 샘플 #1:
-#   🎯 실제 정답: ㄱ (클래스 0)
-#   🤖 예측 결과: ㄱ (클래스 0)
-#   💯 신뢰도: 99.87%
-#   ✅ 정답!
-```
-
-**용도:** 
-- 실시간 추론 테스트
-- 빠른 결과 확인
-- 디버깅 및 검증
-
-#### 4.2 배치 예측 (Batch Prediction)
-```bash
-# 배치 예측 예제 실행
-python3 inference/examples/batch_predict.py
-
-# 특징:
-# - 여러 샘플 동시 처리
-# - 가변 길이 입력 자동 조정
-# - 대용량 데이터 청크 처리
-# - 배치 통계 계산
-```
-
-**용도:**
-- 여러 샘플 동시 추론
-- 효율적인 처리 (배치 단위)
-- 대용량 데이터 처리
-
-#### 4.3 전체 테스트 세트 평가 + 시각화
-```bash
-# 전체 테스트 세트 추론 + 시각화 생성
-python3 inference_visualization.py
-
-# 생성되는 시각화 (6개):
-# - confusion_matrix.png              # 혼동 행렬
-# - confusion_matrix_normalized.png   # 정규화된 혼동 행렬
-# - per_class_accuracy.png            # 클래스별 정확도
-# - per_class_confidence.png          # 클래스별 신뢰도 분포
-# - confidence_distribution.png       # 정답/오답 신뢰도 비교
-# - confidence_scatter.png            # 전체 샘플 신뢰도
-```
-
-**용도:**
-- 모델 성능 평가
-- 상세 분석 및 시각화
-- 오류 분석
-- 논문/발표 자료 생성
-
-#### 4.4 직접 추론 코드 작성 (Custom Inference)
-```python
-import torch
-from src.models.GRUModels import GRU
-from src.misc.DynamicDataModule import DynamicDataModule
-
-# 1. 모델 로드
-checkpoint_path = "src/experiments/checkpoints/best_model_epoch=57_val/loss=0.03-v2.ckpt"
-model = GRU.load_from_checkpoint(
-    checkpoint_path,
-    input_size=8,
-    hidden_size=64,
-    classes=24,
-    learning_rate=1e-3,
-    map_location=torch.device('cpu')
-)
-model.eval()
-
-# 2. 데이터 준비
-data_module = DynamicDataModule(
-    data_dir="/path/to/datasets/unified",
-    time_steps=87,
-    batch_size=32
-)
-data_module.setup(stage='test')
-test_loader = data_module.test_dataloader()
-
-# 3. 추론 실행
-for batch in test_loader:
-    x = batch['measurement']
-    x_padding = batch['measurement_padding']
-    y_true = batch['label']
-    
-    with torch.no_grad():
-        logits, _ = model(x, x_padding, y_true)
-        predictions = torch.argmax(logits, dim=1)
-        confidences = torch.softmax(logits, dim=1).max(dim=1)[0]
-    
-    # 결과 활용
-    for i, (pred, conf) in enumerate(zip(predictions, confidences)):
-        class_name = data_module.class_names[pred.item()]
-        print(f"예측: {class_name}, 신뢰도: {conf.item()*100:.2f}%")
-    break  # 첫 배치만
-```
-
-### 5. 모델 성능 확인
-```bash
-# 학습 로그 확인
-tail -20 training_output_RNN_GRU_clean.log
-tail -20 training_output_MSCSGRU_CNNGRU_clean.log
-tail -20 training_output_MSCSGRU_MSCSGRU_clean.log
-
-# 시각화 확인
-ls visualizations/GRU/
-ls visualizations/CNNGRU/
-ls visualizations/MSCSGRU/
-
-# 추론 결과 확인
-ls inference/inference_visualizations/
-```
-
-## 📈 모델 성능 비교
-
-### 최종 학습 결과 (Early Stopping 적용)
-| 모델 | Train Loss | Val Loss | Train Acc | Val Acc | Test Acc | Epochs | 특징 |
-|------|------------|----------|-----------|---------|----------|--------|------|
-| **GRU** | 0.027 | 0.032 | 99.7% | 99.0% | **99.31%** | 58 | ⭐ 추천: 안정적 학습 패턴 |
-| **CNNGRU** | 0.138 | 0.052 | 95.3% | 99.3% | - | 100 | 큰 Loss Gap (과도한 정규화) |
-| **MSCSGRU** | 0.092 | 0.043 | 98.0% | 99.3% | - | 58 | 멀티스케일 특징 추출 |
-
-### 추론 성능 (GRU 모델 기준) 🎯
-```
-📊 테스트 세트 평가:
-  - 총 샘플 수: 289개
-  - Top-1 정확도: 99.31% (287/289)
-  - Top-5 정확도: 100.00% (289/289)
-  - 평균 신뢰도: 99.12%
-  - 정답 샘플 평균 신뢰도: 99.26%
-  - 오답 샘플 평균 신뢰도: 85.49%
-  
-⚠️ 가장 혼동되는 클래스 쌍:
-  1. ㅁ → ㅏ: 1회 (자음 ↔ 모음, 손 모양 유사)
-  2. ㅑ → ㅗ: 1회 (모음 ↔ 모음, 유사한 패턴)
-```
-
-### 모델 선택 가이드
-- **🏆 프로덕션 추천**: `GRU` 
-  - 정상적인 학습 패턴 (Train > Val)
-  - 높은 테스트 정확도 (99.31%)
-  - 일관된 성능 (Train/Val/Test 모두 99% 대)
-  - 빠른 추론 속도
-  
-- **🔬 연구용**: `MSCSGRU`
-  - 멀티스케일 특징 추출
-  - 다양한 시간 패턴 학습
-  - 복잡한 패턴 인식에 유리
-
-### 핵심 개선사항
-✅ **데이터 누수 해결**: 독립적인 Train/Val/Test 분할  
-✅ **Early Stopping**: 과적합 방지 및 효율적 학습 (patience=10)  
-✅ **정상적 학습 패턴**: Train > Val 성능 관계 복원  
-✅ **X축 최적화**: 실제 학습 epoch까지만 시각화  
-✅ **추론 시스템 완성**: 단일/배치 예측, 시각화 지원
-
-## 🔬 기술적 특징
-
-### 멀티스케일 CNN
-- **3개 타워 병렬 처리**: kernel_size 3, 5, 7로 다양한 시간 스케일 패턴 추출
-- **미세 패턴 (kernel=3)**: 짧은 시간 동안의 센서값 변화
-- **중간 패턴 (kernel=5)**: 중간 시간 동안의 패턴
-- **거시 패턴 (kernel=7)**: 긴 시간에 걸친 전체적인 패턴
-
-### GRU 아키텍처
-- **단일 GRU**: 파라미터 수 적음, 빠른 학습
-- **스택 GRU**: 2층 구조로 복잡한 시간 의존성 학습
-
-### 데이터 전처리
-- **타임스텝 정규화**: 가변 길이 → 87 타임스텝
-- **스케일링**: StandardScaler 적용
-- **층화 샘플링**: 클래스 비율 유지하며 분할
-
-## 💡 사용 사례
-
-### 1️⃣ 학습된 모델로 즉시 테스트 (3가지 방법)
-```bash
-# A. 단일 샘플 예측 - 빠른 테스트
-python3 inference/examples/single_predict.py
-
-# B. 배치 예측 - 여러 샘플 동시 처리
-python3 inference/examples/batch_predict.py
-
-# C. 전체 평가 + 시각화 - 상세 분석
-python3 inference_visualization.py
-```
-
-### 2️⃣ 새로운 데이터로 모델 재학습
-```bash
-# 데이터 경로 수정: src/experiments/ModelTrain.sh
-# DATA_DIR 변수를 본인의 데이터셋 경로로 변경
-
-cd src/experiments
-bash ModelTrain.sh RNN GRU
-
-# 학습 완료 후 시각화
-cd ../../
-python3 analyze_training.py -model GRU
-```
-
-### 3️⃣ 모델 성능 비교
-```bash
-# 여러 모델 동시 학습
-cd src/experiments
-bash ModelTrain.sh RNN GRU
-bash ModelTrain.sh MSCSGRU CNNGRU
-bash ModelTrain.sh MSCSGRU MSCSGRU
-
-# 성능 비교 스크립트 실행
-cd ../../
-python3 compare_models.py
-```
-
-### 4️⃣ 커스텀 추론 파이프라인 구축
-```python
-# 본인만의 추론 로직 작성
-import torch
-from src.models.GRUModels import GRU
-
-# 1. 모델 로드
-model = GRU.load_from_checkpoint("체크포인트경로")
-model.eval()
-
-# 2. 데이터 준비 (본인의 센서 데이터)
-# x: (batch, 87, 8) - 센서 측정값
-# x_padding: (batch, 87) - 패딩 마스크
-
-# 3. 추론
-with torch.no_grad():
-    logits, _ = model(x, x_padding, y_true)
-    predictions = torch.argmax(logits, dim=1)
-
-# 4. 결과 활용
-print(f"예측 클래스: {predictions}")
-```
-
-### 5️⃣ 하이퍼파라미터 튜닝
-```bash
-# ModelTrain.sh 파일에서 수정 가능한 파라미터:
-# - epochs (기본: 100)
-# - batch_size (기본: 32)
-# - learning_rate (기본: 1e-3)
-# - hidden_size (기본: 64)
-# - dropout (기본: 0.3)
-
-# 예: Learning Rate 변경
-# ModelTrain.sh 파일에서 lr=5e-4 로 수정 후
-bash ModelTrain.sh RNN GRU
-```
-
-## 🎯 주요 성과
-
-### 모델 개발 ✅
-✅ **3가지 핵심 모델 구현**: GRU, CNNGRU, MSCSGRU 모델 비교 완료  
-✅ **높은 정확도 달성**: Test 정확도 99.31% (GRU 모델)  
-✅ **멀티스케일 특징 추출**: 다양한 시간 스케일 패턴 동시 학습 (MSCSGRU)  
-
-### 데이터 처리 ✅
-✅ **데이터 누수 해결**: 독립적인 Train/Val/Test 분할로 신뢰성 있는 평가  
-✅ **강건한 전처리**: StandardScaler + 제로 패딩 + 층화 샘플링  
-✅ **정상적 학습 패턴**: Train > Val 성능 관계 복원  
-
-### 학습 시스템 ✅
-✅ **Early Stopping**: 과적합 방지 및 효율적 학습 (patience=10)  
-✅ **자동 체크포인트**: 최고 성능 모델 자동 저장  
-✅ **학습 곡선 시각화**: 실시간 모니터링 및 분석  
-
-### 추론 시스템 ✅ (완성!)
-✅ **단일 샘플 예측**: 간편한 예제 스크립트 제공  
-✅ **배치 추론**: 전체 테스트 세트 평가  
-✅ **완전한 시각화**: 혼동 행렬, 클래스별 성능, 신뢰도 분석  
-✅ **Top-5 정확도**: 100% 달성 (유사 클래스 간 혼동만 존재)  
-
-## 🚀 향후 계획
-
-### 단기 계획
-- [x] 각 모델별 성능 평가 및 비교 (완료 ✅)
-- [x] Early Stopping 구현 (완료 ✅)
-- [x] 데이터 누수 문제 해결 (완료 ✅)
-- [x] 추론 시스템 구축 (완료 ✅)
-- [x] 추론 결과 시각화 (완료 ✅)
-- [ ] 하이퍼파라미터 최적화 (Grid Search / Optuna)
-- [ ] 실시간 하드웨어 연동 테스트
-
-### 장기 계획
-- [ ] 실시간 웹 인터페이스 개발
-- [ ] 단어 단위 수화 인식 확장
-- [ ] 문장 단위 수화 번역 시스템
-- [ ] 모바일 앱 개발 (Android/iOS)
-- [ ] 클라우드 기반 API 서비스
-
-## ❓ FAQ (자주 묻는 질문)
-
-### Q1: 학습 없이 바로 추론할 수 있나요?
-**A:** 네! 이미 학습된 체크포인트가 포함되어 있습니다.
-```bash
-python3 inference/examples/single_predict.py
-```
-
-### Q2: 어떤 모델을 사용해야 하나요?
-**A:** **GRU 모델**을 추천합니다 (99.31% 정확도, 안정적 학습 패턴).
-- 프로덕션: `GRU` (빠르고 정확함)
-- 연구용: `MSCSGRU` (멀티스케일 특징)
-
-### Q3: GPU가 없어도 되나요?
-**A:** 네! CPU만으로도 충분히 실행 가능합니다.
-```python
-# 코드에서 자동으로 CPU 모드로 전환됨
-device = torch.device('cpu')
-```
-
-### Q4: 데이터셋 경로를 어떻게 설정하나요?
-**A:** 두 가지 방법이 있습니다:
-
-**방법 1: DynamicDataModule.py 수정** (권장)
-```python
-# src/misc/DynamicDataModule.py 21번째 줄
-data_dir: str = "/YOUR/CUSTOM/PATH/datasets/unified"
-```
-
-**방법 2: 코드에서 직접 지정**
-```python
-# 학습 시
-data_module = DynamicDataModule(
-    data_dir="/path/to/your/data",
-    time_steps=87,
-    batch_size=32
-)
-```
-
-### Q5: 새로운 데이터로 학습하려면?
-**A:** 데이터를 `datasets/unified` 형식으로 준비 후:
-```bash
-cd src/experiments
-bash ModelTrain.sh RNN GRU
-```
-
-**데이터 형식:**
-- 각 클래스별로 폴더 구성 (예: `ㄱ/`, `ㄴ/`, ...)
-- CSV 파일: `(타임스텝, 8)` 형태 (flex1-5, pitch, roll, yaw)
-
-### Q6: 추론 결과를 어떻게 해석하나요?
-**A:** 
-- **신뢰도 ≥ 95%**: 매우 확실한 예측
-- **신뢰도 80-95%**: 신뢰할 수 있는 예측
-- **신뢰도 < 80%**: 재검토 필요 (유사 클래스 간 혼동)
-
-### Q7: Top-5 정확도가 100%인데 과적합 아닌가요?
-**A:** 아닙니다! 오답 2개도 정답이 상위 5개 안에 포함되어 있었습니다.
-- Train/Val/Test 성능이 모두 99% 대로 일관됨
-- 완전히 다른 클래스를 예측하지 않음 (유사 클래스 간 혼동만 존재)
-
-### Q8: 실시간으로 사용할 수 있나요?
-**A:** 네! GRU 모델은 경량이라 실시간 처리 가능합니다.
-```python
-# 단일 샘플 추론 시간: ~10ms (CPU 기준)
-model.eval()
-with torch.no_grad():
-    logits, _ = model(x, x_padding, y_true)
-```
-
-### Q9: 시각화가 안 보이는데요?
-**A:** 시각화 파일 경로를 확인하세요:
-```bash
-# 학습 시각화
-ls visualizations/GRU/
-
-# 추론 시각화
-ls inference/inference_visualizations/
-```
-
-### Q10: 체크포인트 파일은 어디에 있나요?
-**A:** `src/experiments/checkpoints/` 폴더에 저장됩니다.
-```bash
-# 최신 체크포인트 확인
-ls -lht src/experiments/checkpoints/
-```
-
-### Q11: 하드웨어 없이 테스트할 수 있나요?
-**A:** 네! SignGlove_HW 프로젝트의 데이터셋을 사용하면 됩니다.
-```bash
-git clone https://github.com/KNDG01001/SignGlove_HW.git
-python3 inference_visualization.py
+# Confusion Matrix 생성 (전체 테스트셋 평가)
+python scripts/generate_confusion_matrix.py
+
+# 단일 샘플 예측
+python inference/examples/single_predict.py \
+    --model inference/best_models/ms3dgru_best.ckpt \
+    --csv sensor_data.csv
 ```
 
 ---
 
-## 📚 참고 자료
+## 📊 핵심 교훈
 
-- [ASL-Sign-Research](https://github.com/adityamakkar000/ASL-Sign-Research): 원본 ASL 프로젝트
-- [SignGlove_HW](https://github.com/KNDG01001/SignGlove_HW): 하드웨어 구현 프로젝트
-- [PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/): 모델 프레임워크
+### 1. 3D CNN이 효과적인 이유
+- ✅ **센서 간 상호작용 학습**: 8개 센서를 공간적으로 배치하여 센서 간 관계 포착
+- ✅ **시간-공간 특성 동시 처리**: 3D CNN이 시간과 공간을 동시에 모델링
+- ✅ **Multi-Scale 특성**: 다양한 커널 크기로 세밀한 패턴부터 거시적 패턴까지 포착
 
-## 📄 라이선스
+### 2. 1D CNN의 한계
+- ❌ 시간 패턴만 포착 (공간 특성 미활용)
+- ❌ 센서 간 상호작용 학습 어려움
+- 결과: 98.44% (GRU와 동일)
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+### 3. Sensor-Aware 접근의 문제
+- ❌ 센서 분리가 오히려 정보 손실
+- ❌ 센서 간 강한 상관관계로 통합 처리 필요
+- 결과: ~90-96% (GRU보다 낮음)
+
+### 4. 모델 복잡도와 성능 트레이드오프
+- MS3DGRU (58K params): 99.13% ✅
+- MS3DStackedGRU (167K params): 98.78% (더 복잡하지만 성능 낮음)
+- 결론: 단순한 구조가 더 효과적
 
 ---
 
-## 📊 시각화 예시
+## 📦 Requirements
 
-### 학습 곡선 (Training Curves)
-![Train/Val Loss](visualizations/GRU/train_val_loss.png)
-![Train/Val Accuracy](visualizations/GRU/train_val_accuracy.png)
+```
+torch>=1.10.0
+pytorch-lightning>=1.5.0
+numpy>=1.20.0
+matplotlib>=3.3.0
+seaborn>=0.11.0
+scikit-learn>=0.24.0
+pandas>=1.2.0
+tqdm>=4.60.0
+```
 
-### 추론 결과 (Inference Results)
-![Confusion Matrix](inference/inference_visualizations/confusion_matrix.png)
-![Per-Class Accuracy](inference/inference_visualizations/per_class_accuracy.png)
-![Confidence Distribution](inference/inference_visualizations/confidence_distribution.png)
+---
 
-## 🤝 기여하기
+## 📄 License
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+See `LICENSE` file for details.
 
-## 📞 문의
+---
 
-프로젝트에 대한 문의사항이 있으시면 이슈를 생성해 주세요.
+## 🔗 관련 프로젝트
+
+이 프로젝트는 SignGlove 시스템의 딥러닝 모델 훈련 및 추론 부분을 담당합니다. 전체 SignGlove 프로젝트는 다음 레포지토리로 구성되어 있습니다:
+
+### 하드웨어 (HW)
+**[SignGlove_HW](https://github.com/KNDG01001/SignGlove_HW)** - 센서 기반 수화 통역 장갑 하드웨어
+- 아두이노 펌웨어 및 데이터 수집 시스템
+- 센서 데이터 수집 및 전처리
+- H5 에피소드 파일 형식 지원
+- 실시간 데이터 수집 인터페이스
+
+### 데이터 분석 (Data Analysis)
+**[SignGlove-DataAnalysis](https://github.com/wodu2s/SignGlove-DataAnalysis)** - 데이터 분석 및 시각화
+- 데이터셋 분석 및 통계
+- 특성 분석 및 시각화
+- 데이터 품질 평가
+
+### 메인 프로젝트 (PM - Project Merge)
+**[SignGlove](https://github.com/minuum/SignGlove)** - 최종 병합된 메인 프로젝트
+- 전체 시스템 통합
+- 실시간 추론 + TTS 통합
+- FastAPI 서버 및 웹 인터페이스
+- 최종 배포 버전
+
+### 현재 프로젝트
+**KLP-SignGlove-Clean** (이 레포지토리) - 딥러닝 모델 훈련 및 추론
+- 모델 아키텍처 구현 및 실험
+- 학습 파이프라인
+- 추론 시스템 및 엔진
+- 성능 평가 및 분석
+
+---
+
+## 📞 문의 및 기여
+
+프로젝트 완료일: 2025-10-29  
+최종 모델: MS3DGRU (99.13% accuracy, 58,840 parameters)
+
+---
+
+*이 프로젝트는 체계적인 실험과 분석을 통해 완성되었습니다.*

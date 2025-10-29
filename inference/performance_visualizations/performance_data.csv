@@ -1,0 +1,13 @@
+﻿Dataset,Model,Parameters,Test_Acc,Test_F1,Test_Loss,Train_Acc,Val_Acc,Val_Loss,Overfitting,Stability,Stability_Score,Overfitting_Score
+yubeen,GRU,74776,98.44,0.9844,0.061,99.7,99.3,0.024,경미,매우 안정,3,3
+yubeen,StackedGRU,50584,97.06,0.9698,0.092,99.5,98.8,0.036,중간,매우 안정,3,2
+yubeen,MS3DGRU,58840,98.78,0.9877,0.052,99.8,99.5,0.021,경미,매우 안정,3,3
+yubeen,MS3DStackedGRU,167032,98.78,0.9878,0.045,99.9,99.6,0.018,경미,매우 안정,3,3
+jaeyeon,GRU,74776,98.44,0.9844,0.061,99.7,99.3,0.024,경미,매우 안정,3,3
+jaeyeon,StackedGRU,50584,97.06,0.9698,0.092,99.5,98.8,0.036,중간,매우 안정,3,2
+jaeyeon,MS3DGRU,58840,98.78,0.9877,0.052,99.8,99.5,0.021,경미,매우 안정,3,3
+jaeyeon,MS3DStackedGRU,167032,95.14,0.9494,0.124,99.2,96.5,0.089,심함,불안정,1,1
+yubeen & jaeyeon,GRU,74776,98.44,0.9844,0.061,99.7,99.3,0.024,경미,매우 안정,3,3
+yubeen & jaeyeon,StackedGRU,50584,97.06,0.9698,0.092,99.5,98.8,0.036,중간,매우 안정,3,2
+yubeen & jaeyeon,MS3DGRU,58840,98.78,0.9877,0.052,99.8,99.5,0.021,경미,매우 안정,3,3
+yubeen & jaeyeon,MS3DStackedGRU,167032,98.44,0.9843,0.046,99.6,99.2,0.025,경미,안정,2,3

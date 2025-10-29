@@ -16,3 +16,4 @@ test.*
 /checkpoints/*
 *.log
 *.ckpt 
+monitor_agru.sh

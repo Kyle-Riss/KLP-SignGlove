@@ -57,6 +57,9 @@ class DynamicDataModule(L.LightningDataModule):
         
         # Store class names
         self.class_names = []
+        
+        # Cache for data splits (to ensure consistency across setup calls)
+        self._data_split_cache = None
 
     def split_data(self, X: np.ndarray, y: np.ndarray, X_padding: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """데이터를 train/val/test 세트로 분할합니다."""
@@ -101,24 +104,32 @@ class DynamicDataModule(L.LightningDataModule):
 
     def setup(self, stage: str):
         """데이터를 준비합니다."""
-        print("🚀 DynamicDataModule 설정 시작...")
-        
-        # Find data files
-        files = find_signglove_files(self.data_dir)
-        
-        # Load and preprocess data
-        X, y, X_padding, class_names, scaler = preprocess_data(
-            files, self.time_steps, self.n_channels, self.resampling_method
-        )
-        
-        # Store class names
-        self.class_names = class_names
-        
-        # Split data
-        X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test = self.split_data(X, y, X_padding)
-        
-        # Print statistics
-        print_split_statistics(y_train, y_val, y_test, self.class_names)
+        # Check if data is already loaded and split
+        if self._data_split_cache is not None:
+            print("✅ 캐시된 데이터 분할 사용 (일관된 train/val/test set)")
+            X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test = self._data_split_cache
+        else:
+            print("🚀 DynamicDataModule 설정 시작...")
+            
+            # Find data files
+            files = find_signglove_files(self.data_dir)
+            
+            # Load and preprocess data
+            X, y, X_padding, class_names, scaler = preprocess_data(
+                files, self.time_steps, self.n_channels, self.resampling_method
+            )
+            
+            # Store class names
+            self.class_names = class_names
+            
+            # Split data (only once!)
+            X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test = self.split_data(X, y, X_padding)
+            
+            # Cache the split for future setup() calls
+            self._data_split_cache = (X_train, X_val, X_test, y_train, y_val, y_test, X_padding_train, X_padding_val, X_padding_test)
+            
+            # Print statistics
+            print_split_statistics(y_train, y_val, y_test, self.class_names)
         
         # Create datasets with padding information
         self.train_dataset = SignGloveDataset(

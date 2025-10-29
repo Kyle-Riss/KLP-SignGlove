@@ -1,0 +1,7 @@
+﻿,Test_Acc,Test_Acc,Test_Acc,Test_Acc,Test_F1,Test_F1,Test_F1,Test_F1,Test_Loss,Test_Loss,Test_Loss,Test_Loss,Parameters
+,mean,std,min,max,mean,std,min,max,mean,std,min,max,first
+Model,,,,,,,,,,,,,
+GRU,98.44,0.0,98.44,98.44,0.98,0.0,0.98,0.98,0.06,0.0,0.06,0.06,74776
+MS3DGRU,98.78,0.0,98.78,98.78,0.99,0.0,0.99,0.99,0.05,0.0,0.05,0.05,58840
+MS3DStackedGRU,97.45,2.01,95.14,98.78,0.97,0.02,0.95,0.99,0.07,0.05,0.04,0.12,167032
+StackedGRU,97.06,0.0,97.06,97.06,0.97,0.0,0.97,0.97,0.09,0.0,0.09,0.09,50584

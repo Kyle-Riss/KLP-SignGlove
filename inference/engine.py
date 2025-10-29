@@ -7,9 +7,13 @@ SignGlove 추론 엔진
 import torch
 import numpy as np
 from pathlib import Path
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
+import warnings
 
 from .models.mscsgru_inference import MSCSGRUInference
+from .models.ms3dgru_inference import MS3DGRUInference
+from .models.ms3dstackedgru_inference import MS3DStackedGRUInference
+from .models.gru_inference import GRUInference
 from .utils.preprocessor import InferencePreprocessor
 from .utils.postprocessor import InferencePostprocessor
 
@@ -20,40 +24,78 @@ class SignGloveInference:
     
     모델 로딩부터 예측 결과 출력까지 모든 과정을 관리
     사용하기 쉬운 고수준 API 제공
+    
+    Example:
+        >>> engine = SignGloveInference(
+        ...     model_path='best_model.ckpt',
+        ...     model_type='MS3DGRU',
+        ...     device='cpu'
+        ... )
+        >>> result = engine.predict_single(sensor_data)
     """
+    
+    # 모델별 기본 설정
+    MODEL_CONFIGS = {
+        'GRU': {
+            'class': GRUInference,
+            'default_params': {'layers': 2, 'dropout': 0.2}
+        },
+        'MS3DGRU': {
+            'class': MS3DGRUInference,
+            'default_params': {'cnn_filters': 32, 'dropout': 0.1}
+        },
+        'MS3DStackedGRU': {
+            'class': MS3DStackedGRUInference,
+            'default_params': {'cnn_filters': 32, 'dropout': 0.05}
+        },
+        'MSCSGRU': {
+            'class': MSCSGRUInference,
+            'default_params': {'cnn_filters': 32, 'dropout': 0.3}
+        }
+    }
     
     def __init__(
         self,
         model_path: str,
-        model_type: str = 'MSCSGRU',
+        model_type: str = 'MS3DGRU',
         input_size: int = 8,
         hidden_size: int = 64,
         classes: int = 24,
-        cnn_filters: int = 32,
-        dropout: float = 0.3,
+        cnn_filters: Optional[int] = None,
+        dropout: Optional[float] = None,
         target_timesteps: int = 87,
-        device: str = None,
-        class_names: List[str] = None,
-        scaler_path: str = None,
+        device: Optional[str] = None,
+        class_names: Optional[List[str]] = None,
+        scaler_path: Optional[str] = None,
         single_predict_device: str = 'cpu',
         enable_dtw: bool = False
     ):
         """
         Args:
             model_path: 체크포인트 파일 경로
-            model_type: 모델 타입 (현재 'MSCSGRU'만 지원)
-            input_size: 입력 채널 수
-            hidden_size: 히든 사이즈
-            classes: 클래스 수
-            cnn_filters: CNN 필터 수
-            dropout: 드롭아웃 비율
-            target_timesteps: 타임스텝 길이
+            model_type: 모델 타입 ('GRU', 'MS3DGRU', 'MS3DStackedGRU', 'MSCSGRU')
+            input_size: 입력 채널 수 (default: 8)
+            hidden_size: 히든 사이즈 (default: 64)
+            classes: 클래스 수 (default: 24)
+            cnn_filters: CNN 필터 수 (None이면 모델별 기본값 사용)
+            dropout: 드롭아웃 비율 (None이면 모델별 기본값 사용)
+            target_timesteps: 타임스텝 길이 (default: 87)
             device: 디바이스 ('cuda', 'cpu', None=자동)
             class_names: 클래스 이름 리스트
+            scaler_path: StandardScaler 파일 경로
+            single_predict_device: 단일 예측 시 사용할 디바이스
+            enable_dtw: DTW 사용 여부 (현재 미구현)
         """
         self.model_path = Path(model_path)
         self.model_type = model_type
         self.target_timesteps = target_timesteps
+        
+        # 모델 타입 검증
+        if model_type not in self.MODEL_CONFIGS:
+            raise ValueError(
+                f"지원하지 않는 모델 타입: {model_type}. "
+                f"지원 모델: {list(self.MODEL_CONFIGS.keys())}"
+            )
         
         # 디바이스 설정
         if device is None:
@@ -62,6 +104,7 @@ class SignGloveInference:
             self.device = torch.device(device)
         
         print(f"🚀 SignGlove 추론 엔진 초기화...")
+        print(f"  모델 타입: {model_type}")
         print(f"  디바이스: {self.device}")
         
         # 모델 로딩
@@ -74,25 +117,12 @@ class SignGloveInference:
         )
         self.model.to(self.device)
         
-        # 전처리기 초기화 (훈련 시 저장된 StandardScaler 강제 사용)
-        try:
-            # 스케일러 경로가 지정되지 않으면 모델 경로 기준으로 추정
-            resolved_scaler_path = scaler_path
-            if resolved_scaler_path is None:
-                resolved_scaler_path = str(self.model_path.parent / 'scaler.pkl')
-
-            self.preprocessor = InferencePreprocessor.load_scaler(
-                resolved_scaler_path,
-                target_timesteps=target_timesteps,
-                n_channels=input_size
-            )
-            print(f"  Scaler loaded from: {resolved_scaler_path}")
-        except Exception as e:
-            # 안전장치: 로드 실패 시 명시적으로 예외 전파해 무결성 보장
-            raise FileNotFoundError(
-                f"StandardScaler file not found or invalid. Tried: '{scaler_path}' and '{self.model_path.parent / 'scaler.pkl'}'. "
-                f"Train-time scaler must be provided. Original error: {e}"
-            )
+        # 전처리기 초기화
+        self.preprocessor = self._init_preprocessor(
+            scaler_path=scaler_path,
+            target_timesteps=target_timesteps,
+            input_size=input_size
+        )
         
         # 후처리기 초기화
         self.postprocessor = InferencePostprocessor(class_names=class_names)
@@ -102,21 +132,140 @@ class SignGloveInference:
         self.enable_dtw = bool(enable_dtw)
         
         print(f"✅ 초기화 완료!")
-        print(f"  모델: {self.model_type}")
         print(f"  파라미터 수: {self.model.count_parameters():,}")
         print(f"  클래스 수: {classes}")
     
-    def _load_model(self, **model_kwargs) -> MSCSGRUInference:
-        """모델 로딩"""
+    def _load_checkpoint_state_dict(self, checkpoint_path: Path) -> dict:
+        """
+        체크포인트에서 state_dict 로드 (공통 로직)
+        
+        Args:
+            checkpoint_path: 체크포인트 파일 경로
+            
+        Returns:
+            state_dict: 정제된 state_dict
+        """
+        try:
+            checkpoint = torch.load(str(checkpoint_path), map_location='cpu')
+        except Exception as e:
+            raise RuntimeError(f"체크포인트 로드 실패: {checkpoint_path}\n오류: {e}")
+        
+        # state_dict 추출
+        if 'state_dict' in checkpoint:
+            state_dict = checkpoint['state_dict']
+        else:
+            state_dict = checkpoint
+        
+        # 'model.' 접두사 제거
+        cleaned_state_dict = {}
+        for key, value in state_dict.items():
+            if key.startswith('model.'):
+                cleaned_key = key[6:]  # 'model.' 제거
+                cleaned_state_dict[cleaned_key] = value
+            else:
+                cleaned_state_dict[key] = value
+        
+        return cleaned_state_dict
+    
+    def _load_model(self, **model_kwargs):
+        """
+        모델 로딩 (개선된 버전 - 중복 코드 제거)
+        
+        Args:
+            **model_kwargs: 모델 초기화 인자
+            
+        Returns:
+            model: 로드된 모델
+        """
+        model_config = self.MODEL_CONFIGS[self.model_type]
+        model_class = model_config['class']
+        default_params = model_config['default_params']
+        
+        # 모델별 파라미터 준비 (기본값 사용)
+        final_params = {
+            'input_size': model_kwargs.get('input_size', 8),
+            'hidden_size': model_kwargs.get('hidden_size', 64),
+            'classes': model_kwargs.get('classes', 24),
+        }
+        
+        # 모델별 특수 파라미터 추가
+        for param_name, default_value in default_params.items():
+            # 사용자가 명시적으로 제공한 값이 있으면 사용, 없으면 기본값
+            user_value = model_kwargs.get(param_name)
+            final_params[param_name] = user_value if user_value is not None else default_value
+        
+        # MSCSGRU는 from_checkpoint 사용
         if self.model_type == 'MSCSGRU':
-            model = MSCSGRUInference.from_checkpoint(
+            model = model_class.from_checkpoint(
                 str(self.model_path),
-                **model_kwargs
+                **final_params
             )
         else:
-            raise ValueError(f"지원하지 않는 모델 타입: {self.model_type}")
+            # 다른 모델들은 직접 로드
+            model = model_class(**final_params)
+            
+            # 체크포인트 로드
+            if self.model_path.exists():
+                state_dict = self._load_checkpoint_state_dict(self.model_path)
+                try:
+                    model.load_state_dict(state_dict, strict=False)
+                except Exception as e:
+                    warnings.warn(
+                        f"체크포인트 로드 중 일부 파라미터 불일치: {e}\n"
+                        f"모델이 초기화된 가중치로 실행됩니다."
+                    )
+            else:
+                warnings.warn(
+                    f"체크포인트 파일을 찾을 수 없습니다: {self.model_path}\n"
+                    f"모델이 초기화된 가중치로 실행됩니다."
+                )
+            
+            model.eval()
         
         return model
+    
+    def _init_preprocessor(
+        self,
+        scaler_path: Optional[str],
+        target_timesteps: int,
+        input_size: int
+    ) -> InferencePreprocessor:
+        """
+        전처리기 초기화 (개선된 버전 - 명확한 경고)
+        
+        Args:
+            scaler_path: Scaler 파일 경로
+            target_timesteps: 타겟 타임스텝
+            input_size: 입력 채널 수
+            
+        Returns:
+            preprocessor: 전처리기 인스턴스
+        """
+        # 스케일러 경로 결정
+        if scaler_path is None:
+            scaler_path = str(self.model_path.parent / 'scaler.pkl')
+        
+        # 스케일러 로드 시도
+        try:
+            preprocessor = InferencePreprocessor.load_scaler(
+                scaler_path,
+                target_timesteps=target_timesteps,
+                n_channels=input_size
+            )
+            print(f"  ✅ Scaler 로드 성공: {scaler_path}")
+        except FileNotFoundError:
+            warnings.warn(
+                f"⚠️  Scaler 파일을 찾을 수 없습니다: {scaler_path}\n"
+                f"   정규화 없이 추론을 진행합니다. 성능이 저하될 수 있습니다.\n"
+                f"   훈련 시 사용한 scaler.pkl 파일을 제공하는 것을 권장합니다."
+            )
+            preprocessor = InferencePreprocessor(
+                target_timesteps=target_timesteps,
+                n_channels=input_size,
+                scaler=None
+            )
+        
+        return preprocessor
     
     def predict_single(
         self,
@@ -134,10 +283,15 @@ class SignGloveInference:
         
         Returns:
             result: 예측 결과 딕셔너리
+                - predicted_class: 예측된 클래스명
+                - predicted_class_idx: 예측된 클래스 인덱스
+                - confidence: 예측 확률
+                - top_k_predictions: 상위 K개 예측 리스트
         """
         # 전처리
         x = self.preprocessor.preprocess_single(raw_data, normalize=True)
-        # 단일 샘플은 latency 최소화를 위해 기본적으로 CPU에서 처리
+        
+        # 단일 샘플은 latency 최소화를 위해 지정된 디바이스에서 처리
         run_device = torch.device(self.single_predict_device)
         x = x.to(run_device)
         
@@ -145,7 +299,9 @@ class SignGloveInference:
         original_device = next(self.model.parameters()).device
         if original_device != run_device:
             self.model.to(run_device)
+        
         logits = self.model.predict(x)
+        
         if original_device != run_device:
             self.model.to(original_device)
         
@@ -257,7 +413,8 @@ class SignGloveInference:
 # 편의 함수
 def load_inference_engine(
     model_path: str,
-    device: str = None,
+    model_type: str = 'MS3DGRU',
+    device: Optional[str] = None,
     **kwargs
 ) -> SignGloveInference:
     """
@@ -265,41 +422,23 @@ def load_inference_engine(
     
     Args:
         model_path: 체크포인트 파일 경로
+        model_type: 모델 타입
         device: 디바이스
         **kwargs: SignGloveInference 초기화 인자
     
     Returns:
         engine: 추론 엔진
+        
+    Example:
+        >>> engine = load_inference_engine(
+        ...     'best_model.ckpt',
+        ...     model_type='MS3DGRU',
+        ...     device='cpu'
+        ... )
     """
-    return SignGloveInference(model_path=model_path, device=device, **kwargs)
-
-
-# 테스트 코드
-if __name__ == "__main__":
-    print("🧪 SignGloveInference 테스트...")
-    
-    # 더미 모델로 테스트 (실제 체크포인트가 없는 경우)
-    print("\n⚠️  실제 체크포인트가 필요합니다.")
-    print("테스트를 위해서는 다음과 같이 사용하세요:")
-    print("""
-    # 추론 엔진 초기화
-    engine = SignGloveInference(
-        model_path='best_model/best_model.ckpt',
-        model_type='MSCSGRU',
-        device='cpu'
+    return SignGloveInference(
+        model_path=model_path,
+        model_type=model_type,
+        device=device,
+        **kwargs
     )
-    
-    # 단일 샘플 예측
-    raw_data = np.random.randn(87, 8)  # 테스트 데이터
-    result = engine.predict_single(raw_data)
-    engine.print_prediction(result)
-    
-    # 배치 예측
-    raw_data_list = [np.random.randn(87, 8) for _ in range(5)]
-    results = engine.predict_batch(raw_data_list)
-    
-    # 모델 정보
-    info = engine.get_model_info()
-    print(info)
-    """)
-

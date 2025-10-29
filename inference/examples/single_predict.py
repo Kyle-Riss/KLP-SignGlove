@@ -1,152 +1,158 @@
 """
 단일 샘플 예측 예제
 
-훈련된 모델을 사용하여 단일 샘플에 대한 예측 수행
+훈련된 MS3DGRU 모델로 단일 센서 데이터 예측
 """
 
 import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 import numpy as np
+import pandas as pd
 from pathlib import Path
-
-# inference 모듈 경로 추가
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
 from inference import SignGloveInference
 
 
-def example_single_prediction():
-    """단일 샘플 예측 예제"""
-    print("=" * 60)
-    print("🎯 단일 샘플 예측 예제")
-    print("=" * 60)
+def predict_from_csv(csv_path: str, model_path: str):
+    """
+    CSV 파일에서 센서 데이터를 로딩하여 예측
+    
+    Args:
+        csv_path: 센서 데이터 CSV 파일 경로
+        model_path: 훈련된 모델 체크포인트 경로
+    """
+    print(f"\n{'='*60}")
+    print("📊 SignGlove 단일 샘플 예측")
+    print(f"{'='*60}\n")
     
     # 1. 추론 엔진 초기화
-    print("\n1️⃣ 추론 엔진 초기화...")
-    model_path = "src/experiments/checkpoints/best_model_epoch=57_val/loss=0.03-v2.ckpt"
+    print("🚀 추론 엔진 초기화 중...")
+    engine = SignGloveInference(
+        model_path=model_path,
+        model_type='MS3DGRU',
+        device='cpu',  # 또는 'cuda'
+        input_size=8,
+        hidden_size=64,
+        classes=24,
+        cnn_filters=32,
+        dropout=0.1
+    )
     
-    try:
-        engine = SignGloveInference(
-            model_path=model_path,
-            model_type='MSCSGRU',
-            input_size=8,
-            hidden_size=64,
-            classes=24,
-            cnn_filters=32,
-            target_timesteps=87,
-            device='cpu'  # 또는 'cuda'
-        )
-    except Exception as e:
-        print(f"❌ 모델 로딩 실패: {e}")
-        print(f"   모델 경로: {model_path}")
+    # 2. CSV에서 센서 데이터 로딩
+    print(f"\n📁 센서 데이터 로딩: {csv_path}")
+    df = pd.read_csv(csv_path)
+    
+    # 센서 컬럼 추출
+    sensor_columns = ['flex1', 'flex2', 'flex3', 'flex4', 'flex5', 'pitch', 'roll', 'yaw']
+    
+    if not all(col in df.columns for col in sensor_columns):
+        print("❌ CSV 파일에 필요한 센서 컬럼이 없습니다!")
+        print(f"  필요한 컬럼: {sensor_columns}")
+        print(f"  현재 컬럼: {list(df.columns)}")
         return
     
-    # 2. 테스트 데이터 생성 (실제로는 센서 데이터 사용)
-    print("\n2️⃣ 테스트 데이터 준비...")
-    # 실제 센서 데이터 shape: (timesteps, 8)
-    # - timesteps: 가변 길이 (자동으로 87로 패딩/트렁케이션)
-    # - 8 channels: flex1-5 + yaw, pitch, roll
+    raw_data = df[sensor_columns].values
+    print(f"✅ 데이터 로딩 완료: {raw_data.shape}")
     
-    raw_data = np.random.randn(87, 8)  # 더미 데이터
-    print(f"   입력 데이터 shape: {raw_data.shape}")
-    
-    # 3. 기본 예측
-    print("\n3️⃣ 기본 예측...")
+    # 3. 예측
+    print("\n🔮 예측 수행 중...")
     result = engine.predict_single(raw_data, top_k=5)
+    
+    # 4. 결과 출력
     engine.print_prediction(result)
     
-    # 4. 상세 예측
-    print("\n4️⃣ 상세 예측...")
-    detailed_result = engine.predict_with_details(raw_data)
+    # 5. 상세 정보
+    print("\n📋 상세 정보:")
+    print(f"  - 센서 데이터 길이: {len(raw_data)} timesteps")
+    print(f"  - 예측 클래스: {result['predicted_class']}")
+    print(f"  - 확률: {result['confidence']:.2%}")
     
-    print(f"\n📊 입력 정보:")
-    print(f"  입력 shape: {detailed_result['input_shape']}")
-    
-    print(f"\n📊 예측 결과:")
-    print(f"  예측 클래스: {detailed_result['predicted_class']}")
-    print(f"  확률: {detailed_result['confidence']:.4f}")
-    
-    print(f"\n📊 상위 5개 예측:")
-    for i, pred in enumerate(detailed_result['top_k_predictions'][:5], 1):
-        print(f"  {i}. {pred['class']}: {pred['confidence']:.4f}")
-    
-    # 5. 모델 정보
-    print("\n5️⃣ 모델 정보...")
-    info = engine.get_model_info()
-    print(f"  모델 타입: {info['model_type']}")
-    print(f"  파라미터 수: {info['total_parameters']:,}")
-    print(f"  클래스 수: {info['classes']}")
-    print(f"  디바이스: {info['device']}")
+    return result
 
 
-def example_with_real_data():
-    """실제 센서 데이터를 사용한 예제"""
-    print("\n" + "=" * 60)
-    print("🎯 실제 센서 데이터 사용 예제")
-    print("=" * 60)
+def predict_from_numpy(model_path: str):
+    """
+    NumPy 배열에서 랜덤 데이터 생성하여 예측 (테스트용)
     
-    # 실제 센서 데이터 로딩
-    # 예: CSV 파일에서 로딩
-    # raw_data = pd.read_csv('sensor_data.csv').values
+    Args:
+        model_path: 훈련된 모델 체크포인트 경로
+    """
+    print(f"\n{'='*60}")
+    print("🧪 SignGlove 테스트 예측 (랜덤 데이터)")
+    print(f"{'='*60}\n")
     
-    # 이 예제에서는 더미 데이터 사용
-    print("\n실제 센서 데이터를 사용하려면:")
-    print("""
-    import pandas as pd
+    # 1. 추론 엔진 초기화
+    print("🚀 추론 엔진 초기화 중...")
+    engine = SignGloveInference(
+        model_path=model_path,
+        model_type='MS3DGRU',
+        device='cpu',
+        input_size=8,
+        hidden_size=64,
+        classes=24,
+        cnn_filters=32,
+        dropout=0.1
+    )
     
-    # CSV 파일에서 센서 데이터 로딩
-    sensor_data = pd.read_csv('path/to/sensor_data.csv')
+    # 2. 랜덤 테스트 데이터 생성
+    print("\n📊 랜덤 테스트 데이터 생성...")
+    raw_data = np.random.randn(87, 8).astype(np.float32)
+    print(f"✅ 데이터 생성 완료: {raw_data.shape}")
     
-    # 필요한 컬럼만 추출 (flex1-5, pitch, roll, yaw)
-    columns = ['flex1', 'flex2', 'flex3', 'flex4', 'flex5', 'pitch', 'roll', 'yaw']
-    raw_data = sensor_data[columns].values
+    # 3. 예측
+    print("\n🔮 예측 수행 중...")
+    result = engine.predict_single(raw_data, top_k=5)
     
-    # 추론
-    result = engine.predict_single(raw_data)
+    # 4. 결과 출력
     engine.print_prediction(result)
-    """)
+    
+    return result
 
 
-def example_different_length_inputs():
-    """다양한 길이의 입력 처리 예제"""
-    print("\n" + "=" * 60)
-    print("🎯 다양한 길이의 입력 처리 예제")
-    print("=" * 60)
+def main():
+    """메인 함수"""
+    import argparse
     
-    print("\n추론 엔진은 자동으로 입력 길이를 조정합니다:")
-    print("  - 짧은 입력 (< 87): 패딩 추가")
-    print("  - 긴 입력 (> 87): 트렁케이션")
-    print("  - 정확한 입력 (= 87): 그대로 사용")
+    parser = argparse.ArgumentParser(description='SignGlove 단일 샘플 예측')
+    parser.add_argument('--model', type=str, required=True, help='모델 체크포인트 경로')
+    parser.add_argument('--csv', type=str, default=None, help='센서 데이터 CSV 파일 경로')
+    parser.add_argument('--test', action='store_true', help='랜덤 데이터로 테스트')
     
-    # 더미 엔진 (실제로는 위와 동일하게 초기화)
-    print("""
-    # 짧은 입력
-    short_data = np.random.randn(50, 8)  # 50 timesteps
-    result = engine.predict_single(short_data)
+    args = parser.parse_args()
     
-    # 긴 입력
-    long_data = np.random.randn(100, 8)  # 100 timesteps
-    result = engine.predict_single(long_data)
+    # 모델 파일 존재 확인
+    model_path = Path(args.model)
+    if not model_path.exists():
+        print(f"❌ 모델 파일을 찾을 수 없습니다: {args.model}")
+        return
     
-    # 정확한 길이
-    exact_data = np.random.randn(87, 8)  # 87 timesteps
-    result = engine.predict_single(exact_data)
-    """)
+    # 예측 모드 선택
+    if args.test:
+        # 랜덤 데이터 테스트
+        predict_from_numpy(str(model_path))
+    elif args.csv:
+        # CSV 파일에서 예측
+        csv_path = Path(args.csv)
+        if not csv_path.exists():
+            print(f"❌ CSV 파일을 찾을 수 없습니다: {args.csv}")
+            return
+        predict_from_csv(str(csv_path), str(model_path))
+    else:
+        print("❌ --csv 또는 --test 옵션을 지정해주세요.")
+        parser.print_help()
 
 
 if __name__ == "__main__":
-    # 단일 샘플 예측 예제
-    example_single_prediction()
+    # 사용 예시
+    print("\n" + "="*60)
+    print("📚 사용 예시:")
+    print("="*60)
+    print("\n1. CSV 파일에서 예측:")
+    print("   python single_predict.py --model best_model.ckpt --csv sensor_data.csv")
+    print("\n2. 랜덤 데이터로 테스트:")
+    print("   python single_predict.py --model best_model.ckpt --test")
+    print("\n" + "="*60 + "\n")
     
-    # 실제 센서 데이터 예제
-    example_with_real_data()
-    
-    # 다양한 길이의 입력 예제
-    example_different_length_inputs()
-    
-    print("\n" + "=" * 60)
-    print("✅ 예제 실행 완료!")
-    print("=" * 60)
-
-
-
-
+    # 실제 실행
+    # main()  # 주석 해제하여 사용

@@ -28,6 +28,10 @@ def find_signglove_files(data_dir: str) -> List[str]:
         files = glob.glob(vowel_pattern)
         vowel_files.extend(files)
     
+    # Sort files to ensure consistent order across runs
+    consonant_files.sort()
+    vowel_files.sort()
+    
     files = consonant_files + vowel_files
     print(f"Found {len(consonant_files)} consonant files, {len(vowel_files)} vowel files")
     print(f"Total: {len(files)} episode files from SignGlove dataset (24 classes)")
