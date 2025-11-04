@@ -17,3 +17,23 @@ test.*
 *.log
 *.ckpt 
 monitor_agru.sh
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archive folders (especially AGRU related)
+archive/agru_research/
+archive/checkpoints_backup/
+archive/lightning_logs_backup/
+
+# Development/Monitoring scripts
+monitor_training_progress.sh
+wait_for_training.sh
+
+# Test scripts
+scripts/test_*.py
+
+# Visualization intermediate files
+*.npz
