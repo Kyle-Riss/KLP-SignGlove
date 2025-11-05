@@ -17,6 +17,7 @@ test.*
 *.log
 *.ckpt
 !best_model/*.ckpt
+!best_model/scaler.pkl
 !checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt
 !checkpoints/best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt
 !checkpoints/best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt
