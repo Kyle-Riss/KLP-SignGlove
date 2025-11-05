@@ -552,7 +552,6 @@ KLP-SignGlove-Clean/
 │   │   ├── MultiScale3DGRUModels.py  # MS3DGRU, MS3DStackedGRU
 │   │   ├── MSCSGRUModels.py       # MSCGRU, MSCSGRU, CNNGRU
 │   │   ├── AdvancedGRUModels.py   # AttentionGRU, ResidualGRU, TransformerGRU
-│   │   ├── AGRUModels.py         # AGRU (실험 예정)
 │   │   ├── EncoderModels.py       # TransformerEncoder, CNNEncoder
 │   │   ├── LSTMModels.py          # LSTM, StackedLSTM
 │   │   └── LightningModel.py      # PyTorch Lightning 베이스 클래스
