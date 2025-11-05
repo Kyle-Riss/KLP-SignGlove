@@ -19,3 +19,4 @@ tqdm>=4.62.0
 # Utilities
 python-multipart>=0.0.5
 requests>=2.28.0
+pyserial>=3.5

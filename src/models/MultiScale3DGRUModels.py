@@ -75,42 +75,42 @@ class MS3DGRU(LitModel):
         
         # 3D 텐서로 변환: (batch, 1, time, 4, 2) - 센서를 4x2 공간으로 재배열
         # 8개 센서를 4x2로 재배열하여 공간적 구조 생성
-        x_3d = x.view(batch_size, time_steps, 4, 2)  # (batch, time, 4, 2)
-        x_3d = x_3d.unsqueeze(1)  # (batch, 1, time, 4, 2)
-        x_3d = x_3d.transpose(1, 2)  # (batch, time, 1, 4, 2)
-        x_3d = x_3d.contiguous().view(batch_size, 1, time_steps, 4, 2)
+        x_3d = x.view(batch_size, time_steps, 4, 2)  # (batch, time, 4, 2) -> 텐서 shape 변경하는 함수 view()
+        x_3d = x_3d.unsqueeze(1)  # (batch, 1, time, 4, 2) 채널 차원 추가 -> 차원 추가하는 함수 unsqueeze()
+        x_3d = x_3d.transpose(1, 2)  # (batch, time, 1, 4, 2) 시간, 채널 차원 교환 -> 1은 채널 차원 -> 채널 차원 먼저 처리하고 시간 차원 처리하기 위해서 -> 차원교환 
+        x_3d = x_3d.contiguous().view(batch_size, 1, time_steps, 4, 2) #3D 텐서 형태 -> 메모리 연속성 보장 -> 최종 shape 변경
         
         # Multi-Scale 3D CNN
-        t1 = self.tower1(x_3d)  # (batch, filters, time, 4, 2)
-        t2 = self.tower2(x_3d)
-        t3 = self.tower3(x_3d)
+        t1 = self.tower1(x_3d) # (batch, filters, time, 4, 2) -> 3*3*3 커널
+        t2 = self.tower2(x_3d) # 5*5*5 커널
+        t3 = self.tower3(x_3d) # 7*7*7 커널
         
-        conv_out = torch.cat([t1, t2, t3], dim=1)  # (batch, filters*3, time, 4, 2)
-        conv_out = self.cnn_post(conv_out)  # (batch, filters*3, time/2, 2, 1)
+        conv_out = torch.cat([t1, t2, t3], dim=1)  # (batch, filters*3, time, 4, 2) 3개 타워 출력 결합
+        conv_out = self.cnn_post(conv_out)  # (batch, filters*3, time/2, 2, 1) MaxPool3d로 후처리
         
-        # 3D → 1D 변환: (batch, time, features)
+        # 3D → 1D 변환: (batch, time, features) 
         # conv_out shape: (batch, filters*3, time/2, 1, 1)
         # 공간 차원을 flatten: (batch, time/2, filters*3*1*1)
-        conv_out = conv_out.permute(0, 2, 1, 3, 4)  # (batch, time/2, filters*3, 1, 1)
-        conv_out = conv_out.contiguous().view(batch_size, conv_out.size(1), -1)  # (batch, time/2, filters*3*1*1)
+        conv_out = conv_out.permute(0, 2, 1, 3, 4)  # (batch, time/2, filters*3, 1, 1) 3D → 1D 변환
+        conv_out = conv_out.contiguous().view(batch_size, conv_out.size(1), -1)  # (batch, time/2, filters*3*1*1) 공간 차원을 flatten -> (batch, time/2, features)) 최종결과가 GRU에 입력 가능한 형태
         
         # GRU
-        gru_out, _ = self.gru(conv_out)
+        gru_out, _ = self.gru(conv_out) #시퀀스 데이터 처리
         
         # 패딩 정보를 활용하여 마지막 유효한 타임스텝 선택
-        if x_padding is not None:
-            valid_lengths = (x_padding == 0).sum(dim=1) - 1
-            valid_lengths = valid_lengths.clamp(min=0, max=gru_out.size(1)-1)
+        if x_padding is not None: #패딩 고려해서 실제 데이터에서 마지막 타임스텝 선택 -> 패딩 있으면 유효한 타임스텝으로 계산하고, 패딩이 없으면 마지막 타임스텝 사용
+            valid_lengths = (x_padding == 0).sum(dim=1) - 1 # 각 배치의 유효한 타임스텝 수 계산
+            valid_lengths = valid_lengths.clamp(min=0, max=gru_out.size(1)-1) #텐서의 값을 지정된 범위로 제한하는 함수
             batch_size = gru_out.size(0)
-            final_features = gru_out[torch.arange(batch_size), valid_lengths]
+            final_features = gru_out[torch.arange(batch_size), valid_lengths] 
         else:
             final_features = gru_out[:, -1, :]
         
-        final_features = self.dropout(final_features)
+        final_features = self.dropout(final_features) #최종 특징벡터 (batch, hidden_size)
         
         # 분류
-        logits = self.output_layers(final_features)
-        loss = F.cross_entropy(logits, y_targets)
+        logits = self.output_layers(final_features) #분류 레이어 아까 (batch, classes=24)
+        loss = F.cross_entropy(logits, y_targets) #손실 계산
         
         return logits, loss
 

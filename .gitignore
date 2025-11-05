@@ -15,7 +15,8 @@ test.*
 /wandb/*
 /checkpoints/*
 *.log
-*.ckpt 
+*.ckpt
+!best_model/*.ckpt
 monitor_agru.sh
 
 # Python cache
