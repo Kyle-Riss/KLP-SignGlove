@@ -30,6 +30,7 @@ __pycache__/
 # Archive folders (especially AGRU related)
 archive/agru_research/
 archive/checkpoints_backup/
+!archive/checkpoints_backup/checkpoints_backup/scaler.pkl
 archive/lightning_logs_backup/
 
 # Development/Monitoring scripts
