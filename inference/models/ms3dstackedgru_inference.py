@@ -49,9 +49,9 @@ class MS3DStackedGRUInference(nn.Module):
             nn.ReLU()
         )
         
-        # Tower 2: 중간 커널
+        # Tower 2: 중간 커널 (훈련 모델과 일치: (5, 5, 5))
         self.tower2 = nn.Sequential(
-            nn.Conv3d(1, cnn_filters, kernel_size=(3, 5, 3), padding=(1, 2, 1)),
+            nn.Conv3d(1, cnn_filters, kernel_size=(5, 5, 5), padding=(2, 2, 2)),
             nn.BatchNorm3d(cnn_filters),
             nn.ReLU(),
             # 추가 Conv 레이어
@@ -60,9 +60,9 @@ class MS3DStackedGRUInference(nn.Module):
             nn.ReLU()
         )
         
-        # Tower 3: 큰 커널
+        # Tower 3: 큰 커널 (훈련 모델과 일치: (7, 7, 7))
         self.tower3 = nn.Sequential(
-            nn.Conv3d(1, cnn_filters, kernel_size=(3, 7, 3), padding=(1, 3, 1)),
+            nn.Conv3d(1, cnn_filters, kernel_size=(7, 7, 7), padding=(3, 3, 3)),
             nn.BatchNorm3d(cnn_filters),
             nn.ReLU(),
             # 추가 Conv 레이어

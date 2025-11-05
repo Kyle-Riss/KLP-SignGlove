@@ -13,6 +13,7 @@ import warnings
 from .models.mscsgru_inference import MSCSGRUInference
 from .models.ms3dgru_inference import MS3DGRUInference
 from .models.ms3dstackedgru_inference import MS3DStackedGRUInference
+from .models.stackedgru_inference import StackedGRUInference
 from .models.gru_inference import GRUInference
 from .utils.preprocessor import InferencePreprocessor
 from .utils.postprocessor import InferencePostprocessor
@@ -40,6 +41,10 @@ class SignGloveInference:
             'class': GRUInference,
             'default_params': {'layers': 2, 'dropout': 0.2}
         },
+        'StackedGRU': {
+            'class': StackedGRUInference,
+            'default_params': {'layers': 2, 'dropout': 0.2}
+        },
         'MS3DGRU': {
             'class': MS3DGRUInference,
             'default_params': {'cnn_filters': 32, 'dropout': 0.1}
@@ -63,6 +68,7 @@ class SignGloveInference:
         classes: int = 24,
         cnn_filters: Optional[int] = None,
         dropout: Optional[float] = None,
+        layers: Optional[int] = None,
         target_timesteps: int = 87,
         device: Optional[str] = None,
         class_names: Optional[List[str]] = None,
@@ -73,7 +79,7 @@ class SignGloveInference:
         """
         Args:
             model_path: 체크포인트 파일 경로
-            model_type: 모델 타입 ('GRU', 'MS3DGRU', 'MS3DStackedGRU', 'MSCSGRU')
+            model_type: 모델 타입 ('GRU', 'StackedGRU', 'MS3DGRU', 'MS3DStackedGRU', 'MSCSGRU')
             input_size: 입력 채널 수 (default: 8)
             hidden_size: 히든 사이즈 (default: 64)
             classes: 클래스 수 (default: 24)
@@ -113,16 +119,17 @@ class SignGloveInference:
             hidden_size=hidden_size,
             classes=classes,
             cnn_filters=cnn_filters,
-            dropout=dropout
+            dropout=dropout,
+            layers=layers
         )
         self.model.to(self.device)
         
         # 전처리기 초기화
         self.preprocessor = self._init_preprocessor(
             scaler_path=scaler_path,
-            target_timesteps=target_timesteps,
+                target_timesteps=target_timesteps,
             input_size=input_size
-        )
+            )
         
         # 후처리기 초기화
         self.postprocessor = InferencePostprocessor(class_names=class_names)
@@ -156,14 +163,26 @@ class SignGloveInference:
         else:
             state_dict = checkpoint
         
-        # 'model.' 접두사 제거
+        # 'model.' 접두사 제거 및 키 매핑
         cleaned_state_dict = {}
         for key, value in state_dict.items():
+            # 'model.' 접두사 제거
             if key.startswith('model.'):
                 cleaned_key = key[6:]  # 'model.' 제거
-                cleaned_state_dict[cleaned_key] = value
             else:
-                cleaned_state_dict[key] = value
+                cleaned_key = key
+            
+            # 훈련 모델 구조와 추론 모델 구조 매핑
+            # 훈련 모델: RNN.0 (Linear), RNN.1 (GRU), output_layers.output_layers.X
+            # 추론 모델: RNN.0 (Linear), RNN.1 (GRU), output_layers.X
+            
+            # output_layers.output_layers.X -> output_layers.X로 매핑
+            if cleaned_key.startswith('output_layers.output_layers.'):
+                mapped_key = cleaned_key.replace('output_layers.output_layers.', 'output_layers.')
+                cleaned_state_dict[mapped_key] = value
+            # RNN 키는 그대로 유지 (RNN.0, RNN.1 모두 포함)
+            else:
+                cleaned_state_dict[cleaned_key] = value
         
         return cleaned_state_dict
     
@@ -271,7 +290,8 @@ class SignGloveInference:
         self,
         raw_data: Union[np.ndarray, List[List[float]]],
         top_k: int = 5,
-        return_all_info: bool = True
+        return_all_info: bool = True,
+        normalize: bool = True
     ) -> Dict:
         """
         단일 샘플 예측
@@ -280,6 +300,7 @@ class SignGloveInference:
             raw_data: 원시 센서 데이터 (timesteps, channels)
             top_k: 상위 K개 클래스 반환
             return_all_info: True이면 모든 정보 반환, False이면 최상위 예측만
+            normalize: 정규화 여부 (이미 정규화된 데이터의 경우 False)
         
         Returns:
             result: 예측 결과 딕셔너리
@@ -289,7 +310,7 @@ class SignGloveInference:
                 - top_k_predictions: 상위 K개 예측 리스트
         """
         # 전처리
-        x = self.preprocessor.preprocess_single(raw_data, normalize=True)
+        x = self.preprocessor.preprocess_single(raw_data, normalize=normalize)
         
         # 단일 샘플은 latency 최소화를 위해 지정된 디바이스에서 처리
         run_device = torch.device(self.single_predict_device)

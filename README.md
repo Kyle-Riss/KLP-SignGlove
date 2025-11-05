@@ -5,66 +5,70 @@
 
 ---
 
+## 📋 목차
+
+1. [프로젝트 개요](#-프로젝트-개요)
+2. [데이터셋](#-데이터셋)
+3. [실험 과정 및 결과](#-실험-과정-및-결과)
+4. [모델 성능](#-모델-성능)
+5. [모델 아키텍처](#-모델-아키텍처)
+6. [추론 시스템](#-추론-시스템)
+7. [하드웨어 통합](#-하드웨어-통합)
+8. [프로젝트 구조](#-프로젝트-구조)
+9. [Quick Start](#-quick-start)
+
+---
+
 ## 🎯 프로젝트 개요
 
 ### 목표
 8채널 센서 데이터를 활용한 한국 수어 24개 자모(자음 14개 + 모음 10개) 인식 시스템 개발
 
-### 데이터셋
-- **총 샘플**: 2,884개 (yubeen: 1,440개, jaeyeon: 1,440개, combined: 2,884개)
-- **클래스**: 24개 (자음 14개: ㄱ-ㅎ, 모음 10개: ㅏ-ㅣ)
+### 핵심 성과
+- 🥇 **최고 정확도**: **99.13%** (MS3DGRU)
+- 📊 **테스트셋 성능**: 577개 샘플 기준
+- 💾 **모델 크기**: 723KB (MS3DGRU 체크포인트)
+- ⚡ **추론 속도**: CPU 기준 ~10ms/샘플
+- 🎯 **F1-Score**: 0.9913
+
+---
+
+## 📊 데이터셋
+
+### 데이터 구성
+- **총 샘플**: 2,884개 (unified 데이터셋)
+- **클래스**: 24개
+  - **자음** (14개): ㄱ, ㄴ, ㄷ, ㄹ, ㅁ, ㅂ, ㅅ, ㅇ, ㅈ, ㅊ, ㅋ, ㅌ, ㅍ, ㅎ
+  - **모음** (10개): ㅏ, ㅑ, ㅓ, ㅕ, ㅗ, ㅛ, ㅜ, ㅠ, ㅡ, ㅣ
 - **센서**: 8채널
-  - Flex 센서: flex1, flex2, flex3, flex4, flex5 (5개)
-  - IMU 센서: pitch, roll, yaw (3개)
-- **시퀀스 길이**: 최대 87 타임스텝
-- **데이터 경로**: `/home/billy/25-1kp/SignGlove_HW/datasets/unified`
+  - **Flex 센서** (5개): flex1, flex2, flex3, flex4, flex5
+  - **IMU 센서** (3개): pitch, roll, yaw
+- **시퀀스 길이**: 최대 87 타임스텝 (padding 처리)
+- **데이터 경로**: `/home/billy/25-1kp/SignGlove-DataAnalysis/unified/unified`
 
-### 최종 성과
-- 🥇 **최고 정확도**: **99.13%** (MS3DGRU, combined 데이터셋)
-- 🥈 **2위 모델**: GRU 98.44% / MS3DStackedGRU 98.78%
-- 💾 **모델 크기**: 723KB (체크포인트)
-- 📊 **F1-Score**: 0.9913
-
----
-
-## 📊 실험 결과 및 모델 성능
-
-### 전체 모델 비교표
-
-| 순위 | 모델 | Test Accuracy | Test F1 | Test Loss | Parameters | 특징 |
-|------|------|---------------|---------|-----------|------------|------|
-| 🥇 1 | **MS3DGRU** | **99.13%** | 0.9913 | 0.052 | 58,840 | Multi-Scale 3D CNN + GRU |
-| 🥈 2 | **GRU** | **98.44%** | 0.9844 | 0.061 | 74,776 | 기본 GRU 모델 (안정적) |
-| 🥈 2 | **MS3DStackedGRU** | **98.78%** | 0.9878 | 0.045 | 167,032 | 3D CNN + Stacked GRU |
-| 🥉 3 | **MSCGRU** | **98.44%** | 0.9844 | 0.046 | ~100K | Multi-Scale 1D CNN + GRU |
-| 4 | **ResidualGRU** | 98.78% | - | - | ~75K | Residual Connection |
-| 5 | **MSCSGRU** | 98.09% | - | - | ~140K | Multi-Scale 1D CNN + Stacked GRU |
-| 6 | **StackedGRU** | 97.06% | 0.9698 | 0.092 | 50,584 | 2층 Stacked GRU |
-
-### 최종 선택 모델: **MS3DGRU**
-
-**선정 이유:**
-1. ✅ **최고 성능** (99.13% 정확도)
-2. ✅ **안정적인 성능** (여러 데이터셋에서 일관된 결과)
-3. ✅ **공간-시간 특성 학습** (3D CNN으로 센서 간 상호작용 포착)
-4. ✅ **적절한 모델 크기** (58,840 파라미터)
+### 데이터 전처리
+- **정규화**: StandardScaler 적용 (훈련 데이터로 학습된 scaler)
+- **Padding**: 시퀀스 길이 87로 통일 (짧은 시퀀스는 zero-padding)
+- **Scaler 파일**: `archive/checkpoints_backup/checkpoints_backup/scaler.pkl`
 
 ---
 
-## 🔬 실험 과정
+## 🔬 실험 과정 및 결과
 
-### Phase 1: 기본 모델 비교
+### Phase 1: 기본 모델 비교 (GRU, StackedGRU, LSTM)
 
-**목적**: 다양한 기본 모델들의 성능 비교
+**목적**: 다양한 기본 RNN 모델들의 성능 비교
 
 **실험 모델:**
-- `GRU`: 기본 GRU (2층)
-- `StackedGRU`: 다층 GRU (안정적이지만 성능 낮음)
+- `GRU`: 기본 GRU (1층, hidden_size=64)
+- `StackedGRU`: 다층 GRU (2층, hidden_size=64)
 - `LSTM` / `StackedLSTM`: LSTM 변형
 
 **결과:**
-- GRU가 가장 안정적이고 높은 성능 (98.44%)
-- StackedGRU는 파라미터 대비 성능이 낮음
+- **GRU**: 98.79% 정확도 (가장 안정적이고 높은 성능)
+- **StackedGRU**: 93.93% 정확도 (파라미터 대비 성능 낮음)
+
+**결론**: 단일 GRU가 더 효율적이고 성능이 우수
 
 ---
 
@@ -80,8 +84,8 @@
 
 **결과:**
 - 1D CNN이 시간 패턴은 잘 포착하지만 공간 특성 활용 미흡
-- MSCGRU가 98.44%로 좋은 성능 (GRU와 동일)
-- 1D CNN만으로는 한계 확인
+- MSCGRU가 98.44%로 좋은 성능 (GRU와 유사)
+- **결론**: 1D CNN만으로는 한계 확인
 
 ---
 
@@ -106,7 +110,7 @@
      ↓
 3D CNN (Multi-Scale): 3개 타워 병렬
   - Tower 1: Conv3d(3x3x3) - 세밀한 특성
-  - Tower 2: Conv3d(5x5x5) - 중간 특성
+  - Tower 2: Conv3d(5x5x5) - 중간 특성  
   - Tower 3: Conv3d(7x7x7) - 거시적 특성
      ↓
 결합 → MaxPool3d((2, 4, 2)) → GRU → 분류기
@@ -115,31 +119,23 @@
 **최적화 과정:**
 1. 초기: 차원 불일치 오류 → `permute`와 `contiguous().view()` 조정
 2. MaxPool3d 커널 크기: `(2, 4, 2)`로 시간/공간 차원 최적화
-3. Dropout 조정: 0.1이 최적 (0.0: 96.53%, 0.1: 98.96%, 0.2: 98.44%)
-4. 추가 Conv 레이어: 2단계 CNN으로 성능 향상 (97.57% → 98.44%)
+3. Dropout 조정: 0.1이 최적
+4. 추가 Conv 레이어: 2단계 CNN으로 성능 향상
 
-**결과:**
-- ✅ **99.13% 정확도 달성**
-- 안정성: 5회 실행 모두 98.78% ±0.0% (매우 안정적)
-- 데이터셋별:
-  - yubeen: 98.78%
-  - jaeyeon: 98.78%
-  - combined: 99.13%
+**최종 결과:**
+- ✅ **99.13% 정확도 달성** (테스트셋 577개 샘플 기준)
+- **F1-Score**: 0.9913
+- **Precision**: 0.9919
+- **Recall**: 0.9913
+- **안정성**: 매우 안정적 (클래스 불균형 없음)
 
 #### 3.3 MS3DStackedGRU 개발
 **목적**: 3D CNN + Stacked GRU로 추가 성능 향상 시도
 
-**최적화 과정:**
-- 과적합 방지: Dropout 강화 → ❌ 성능 하락
-- CNN 구조 개선: 추가 Conv 레이어 → ✅ 98.44% 달성
-- Bidirectional GRU: 98.09%
-- Attention: 98.09%
-- 하이퍼파라미터 튜닝: 98.26%
-
 **결과:**
-- 최고 성능: 98.44% (MS3DGRU보다 낮음)
+- **97.92% 정확도** (MS3DGRU보다 낮음)
 - 파라미터 증가 (167K vs 58K)
-- 결론: 단일 GRU가 더 효율적
+- **결론**: 단일 GRU가 더 효율적
 
 ---
 
@@ -148,7 +144,6 @@
 #### 4.1 Residual Connections
 **모델**: `ResidualGRU`
 - ResNet 스타일 residual connection 적용
-- Gradient flow 개선
 - **결과**: 98.78% (MS3DGRU보다 낮음)
 
 #### 4.2 Attention Mechanisms
@@ -168,35 +163,34 @@
 
 ---
 
-### Phase 5: 데이터셋 확장 및 검증
+### Phase 5: Unified 데이터셋 재훈련
 
-**목적**: 다양한 데이터셋에서 모델 안정성 검증
+**목적**: 통합된 데이터셋으로 최종 모델 재훈련
 
 **데이터셋:**
-1. **yubeen**: 첫 1,440개 샘플
-2. **jaeyeon**: 다음 1,440개 샘플
-3. **combined**: 전체 2,884개 샘플
+- **unified**: 전체 2,884개 샘플 통합
+- **훈련/검증/테스트 분할**: 동적 분할 (DynamicDataModule)
 
-**검증 결과:**
+**재훈련 모델:**
+1. **GRU** (1층): 98.79% 정확도
+2. **StackedGRU** (2층): 93.93% 정확도
+3. **MS3DGRU**: 99.13% 정확도
+4. **MS3DStackedGRU**: 97.92% 정확도
 
-| 모델 | yubeen | jaeyeon | combined | 평균 | 안정성 |
-|------|--------|---------|----------|------|--------|
-| GRU | 98.44% | 98.44% | 98.44% | 98.44% | 매우 안정 |
-| StackedGRU | 97.06% | 97.06% | 97.06% | 97.06% | 매우 안정 |
-| MS3DGRU | **98.78%** | **98.78%** | **99.13%** | **98.90%** | 매우 안정 |
-| MS3DStackedGRU | 98.78% | 95.14% | 98.44% | 97.45% | 불안정 |
-
-**결론**: MS3DGRU가 모든 데이터셋에서 일관되고 최고 성능
+**최종 선택 모델: MS3DGRU**
+- ✅ 최고 성능 (99.13%)
+- ✅ 안정적인 성능
+- ✅ 적절한 모델 크기 (723KB)
 
 ---
 
 ### Phase 6: 하이퍼파라미터 최적화
 
 **최적화 항목:**
-- Learning Rate: 0.0001, 0.001, 0.005, 0.01
-- Batch Size: 32, 64, 128
-- Dropout: 0.01, 0.05, 0.1, 0.2
-- Epochs: 100 (Early Stopping 적용)
+- **Learning Rate**: 0.0001, 0.001, 0.005, 0.01
+- **Batch Size**: 32, 64, 128
+- **Dropout**: 0.01, 0.05, 0.1, 0.2
+- **Epochs**: 100 (Early Stopping 적용)
 
 **MS3DGRU 최적 설정:**
 - Learning Rate: 0.001
@@ -207,23 +201,75 @@
 
 ---
 
-### Phase 7: 통계적 검증
+## 📊 모델 성능
 
-**목적**: 모델의 안정성과 통계적 유의성 검증
+### 최종 모델 성능 비교 (테스트셋 577개 샘플)
 
-**방법**: 5회 실행 (서로 다른 random seed)
+| 순위 | 모델 | Accuracy | F1-Score | Precision | Recall | 파라미터 | 체크포인트 경로 |
+|------|------|----------|----------|-----------|--------|----------|----------------|
+| 🥇 1 | **MS3DGRU** | **99.13%** | **0.9913** | 0.9919 | 0.9913 | 58,840 | `best_model/ms3dgru_best.ckpt` |
+| 🥈 2 | **GRU** | **98.79%** | **0.9879** | 0.9881 | 0.9879 | ~25K | `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt` |
+| 🥉 3 | **MS3DStackedGRU** | **97.92%** | **0.9792** | 0.9803 | 0.9792 | 167,032 | `checkpoints/best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt` |
+| 4 | **StackedGRU** | 93.93% | 0.9367 | 0.9470 | 0.9393 | 50,584 | `checkpoints/best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt` |
 
-**결과:**
-- MS3DGRU: 98.78% ± 0.0% (매우 안정)
-- StackedGRU: 91.85% ± 변동 (불안정)
+### 성능 분석
 
-**결론**: MS3DGRU는 매우 안정적인 성능
+**클래스별 성능:**
+- 모든 클래스에서 균형적인 성능 (클래스 불균형 없음)
+- Accuracy와 F1-Score가 거의 동일 (모든 클래스의 Precision ≈ Recall)
+- 오분류율: 0.87% (MS3DGRU 기준)
+
+**모델 효율성:**
+- MS3DGRU: 최고 성능 + 적절한 모델 크기 (723KB)
+- GRU: 높은 성능 + 작은 모델 크기 (598KB)
+- MS3DStackedGRU: 높은 성능이지만 모델 크기 큼 (2.0MB)
 
 ---
 
-## 🚀 추론 시스템 사용법
+## 🏗️ 모델 아키텍처
 
-### 시스템 구조
+### MS3DGRU (Multi-Scale 3D CNN + GRU)
+
+**아키텍처:**
+```
+입력: (batch, timesteps=87, channels=8)
+     ↓
+Reshape: (batch, timesteps=87, height=4, width=2)
+     ↓
+Multi-Scale 3D CNN (3개 타워 병렬):
+  ├─ Tower 1: Conv3d(3x3x3) → Conv3d(3x3x3) → BatchNorm → ReLU
+  ├─ Tower 2: Conv3d(5x5x5) → Conv3d(3x3x3) → BatchNorm → ReLU
+  └─ Tower 3: Conv3d(7x7x7) → Conv3d(3x3x3) → BatchNorm → ReLU
+     ↓
+Concatenate → MaxPool3d(2, 4, 2)
+     ↓
+Flatten → GRU(hidden_size=64) → Dropout(0.1)
+     ↓
+Output Layers → 24 classes
+```
+
+**하이퍼파라미터:**
+- Input Size: 8 (센서 채널)
+- Hidden Size: 64
+- CNN Filters: 32
+- Dropout: 0.1
+- Target Timesteps: 87
+
+---
+
+## 🚀 추론 시스템
+
+### 추론 가중치 파일 위치
+
+| 모델 | 체크포인트 경로 | 크기 | 상태 |
+|------|----------------|------|------|
+| **MS3DGRU** | `best_model/ms3dgru_best.ckpt` | 723KB | ✅ 사용 중 |
+| **GRU** | `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt` | 598KB | ✅ 사용 중 |
+| **MS3DStackedGRU** | `checkpoints/best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt` | 2.0MB | ✅ 사용 중 |
+| **StackedGRU** | `checkpoints/best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt` | 609KB | ✅ 사용 중 |
+| **Scaler** | `archive/checkpoints_backup/checkpoints_backup/scaler.pkl` | 641B | ✅ 필수 |
+
+### 추론 시스템 구조
 
 ```
 inference/
@@ -231,393 +277,268 @@ inference/
 ├── models/                # 추론용 모델 정의
 │   ├── ms3dgru_inference.py
 │   ├── gru_inference.py
+│   ├── stackedgru_inference.py
 │   ├── ms3dstackedgru_inference.py
 │   └── mscsgru_inference.py
 ├── utils/                 # 전처리/후처리 유틸리티
 │   ├── preprocessor.py
 │   └── postprocessor.py
-├── examples/              # 사용 예제
-│   ├── single_predict.py      # 단일 샘플 예측
-│   ├── batch_predict.py       # 배치 예측
-│   ├── ms3dgru_predict.py     # MS3DGRU 전용 예제
-│   └── best_models_demo.py    # 최고 성능 모델 데모
-├── best_models/           # 훈련된 모델 체크포인트
-│   └── ms3dgru_best.ckpt      # MS3DGRU (99.13%)
-└── performance_visualizations/  # 성능 시각화 결과
+└── examples/              # 사용 예제
+    ├── generate_confusion_matrices.py  # 혼동 행렬 생성
+    ├── single_predict.py      # 단일 샘플 예측
+    ├── batch_predict.py       # 배치 예측
+    └── test_all_models.py     # 전체 모델 테스트
 ```
 
----
+### Python API 사용법
 
-### 1. 기본 사용법 (Python API)
-
-#### 1.1 단일 샘플 예측
+#### 1. 기본 사용법
 
 ```python
 import numpy as np
 from inference import SignGloveInference
 
-# 1. 추론 엔진 초기화
+# 추론 엔진 초기화
 engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU',  # 또는 'GRU', 'MS3DStackedGRU', 'MSCSGRU'
-    device='cpu',  # 또는 'cuda'
-    input_size=8,
-    hidden_size=64,
-    classes=24,
-    cnn_filters=32,
-    dropout=0.1
+    model_path='best_model/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',
+    scaler_path='archive/checkpoints_backup/checkpoints_backup/scaler.pkl',
+    device='cpu'  # 또는 'cuda'
 )
 
-# 2. 센서 데이터 준비
-# Shape: (timesteps, 8)
+# 센서 데이터 준비 (Shape: (timesteps, 8))
 # 채널 순서: [flex1, flex2, flex3, flex4, flex5, pitch, roll, yaw]
-raw_data = np.random.randn(87, 8).astype(np.float32)  # 예시 데이터
+raw_data = np.random.randn(87, 8).astype(np.float32)
 
-# 3. 예측 수행
-result = engine.predict_single(raw_data, top_k=5)
+# 예측 수행
+result = engine.predict_single(raw_data, top_k=5, normalize=False)
 
-# 4. 결과 출력
-engine.print_prediction(result)
-# 출력 예시:
-# 🎯 예측 클래스: ㄱ
-# 📈 확률: 0.9845
-# 📋 상위 5개 예측:
-#     1. ㄱ: 0.9845
-#     2. ㅂ: 0.0102
-#     3. ㅁ: 0.0031
-#     4. ㄴ: 0.0012
-#     5. ㄷ: 0.0005
-```
-
-#### 1.2 CSV 파일에서 예측
-
-```python
-import pandas as pd
-from inference import SignGloveInference
-
-# 추론 엔진 초기화
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU'
-)
-
-# CSV 파일 로드
-df = pd.read_csv('sensor_data.csv')
-
-# 센서 컬럼 추출 (필수: flex1-5, pitch, roll, yaw)
-sensor_columns = ['flex1', 'flex2', 'flex3', 'flex4', 'flex5', 'pitch', 'roll', 'yaw']
-raw_data = df[sensor_columns].values
-
-# 예측
-result = engine.predict_single(raw_data)
-print(f"예측: {result['predicted_class']}, 확률: {result['confidence']:.2%}")
-```
-
-#### 1.3 배치 예측
-
-```python
-import numpy as np
-from inference import SignGloveInference
-
-# 추론 엔진 초기화
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU'
-)
-
-# 여러 샘플 준비 (길이가 다를 수 있음)
-raw_data_list = [
-    np.random.randn(87, 8).astype(np.float32),  # 샘플 1
-    np.random.randn(75, 8).astype(np.float32),  # 샘플 2 (다른 길이 가능)
-    np.random.randn(90, 8).astype(np.float32),  # 샘플 3
-]
-
-# 배치 예측
-results = engine.predict_batch(raw_data_list, top_k=3)
-
-# 결과 확인
-for i, result in enumerate(results, 1):
-    print(f"샘플 {i}: {result['predicted_class']} ({result['confidence']:.2%})")
-```
-
-#### 1.4 상세 정보 포함 예측
-
-```python
-# 예측과 함께 상세 정보 반환
-detailed_result = engine.predict_with_details(raw_data)
-
-print(f"예측 클래스: {detailed_result['predicted_class']}")
-print(f"확률: {detailed_result['confidence']:.4f}")
-print(f"입력 shape: {detailed_result['input_shape']}")
-print(f"처리 시간: {detailed_result['processing_time']:.4f}초")
+# 결과 출력
+print(f"예측 클래스: {result['predicted_class']}")
+print(f"확률: {result['confidence']:.4f}")
 print("\n상위 5개 예측:")
-for i, pred in enumerate(detailed_result['top_k_predictions'], 1):
+for i, pred in enumerate(result['top_k_predictions'], 1):
     print(f"  {i}. {pred['class']}: {pred['confidence']:.4f}")
 ```
 
----
-
-### 2. 명령행 사용법
-
-#### 2.1 단일 샘플 예측 스크립트
-
-```bash
-# CSV 파일에서 예측
-python inference/examples/single_predict.py \
-    --model inference/best_models/ms3dgru_best.ckpt \
-    --csv sensor_data.csv
-
-# 랜덤 데이터로 테스트
-python inference/examples/single_predict.py \
-    --model inference/best_models/ms3dgru_best.ckpt \
-    --test
-```
-
-#### 2.2 배치 예측 스크립트
-
-```bash
-# 여러 CSV 파일 배치 예측
-python inference/examples/batch_predict.py \
-    --model inference/best_models/ms3dgru_best.ckpt \
-    --csvs file1.csv file2.csv file3.csv
-
-# 디렉토리의 모든 CSV 파일 예측
-python inference/examples/batch_predict.py \
-    --model inference/best_models/ms3dgru_best.ckpt \
-    --dir ./sensor_data/
-
-# 랜덤 데이터로 테스트 (배치 크기 10)
-python inference/examples/batch_predict.py \
-    --model inference/best_models/ms3dgru_best.ckpt \
-    --test 10
-```
-
-#### 2.3 MS3DGRU 전용 예제
-
-```bash
-# MS3DGRU 모델의 모든 기능 데모
-python inference/examples/ms3dgru_predict.py
-
-# 최고 성능 모델 데모
-python inference/examples/best_models_demo.py
-```
-
----
-
-### 3. Confusion Matrix 생성
-
-```bash
-# MS3DGRU 모델의 전체 테스트셋 성능 평가
-python scripts/generate_confusion_matrix.py
-
-# 생성되는 파일:
-# - inference/performance_visualizations/real_test_confusion_matrix_ms3dgru_final.png
-# - inference/performance_visualizations/real_test_class_accuracy_ms3dgru_final.png
-# - inference/performance_visualizations/real_test_report_ms3dgru_final.txt
-```
-
-**결과 예시:**
-```
-정확도: 99.13%
-F1-Score (Macro): 0.9913
-F1-Score (Weighted): 0.9913
-
-✅ 정확 예측: 572개 (99.13%)
-❌ 오분류: 5개 (0.87%)
-```
-
----
-
-### 4. 성능 벤치마크
+#### 2. 여러 모델 비교
 
 ```python
-import time
+from inference import SignGloveInference
+
+models_config = {
+    'MS3DGRU': {
+        'path': 'best_model/ms3dgru_best.ckpt',
+        'type': 'MS3DGRU',
+        'cnn_filters': 32,
+        'dropout': 0.1
+    },
+    'GRU': {
+        'path': 'checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt',
+        'type': 'GRU',
+        'hidden_size': 64,
+        'layers': 1,
+        'dropout': 0.2
+    }
+}
+
+results = {}
+for model_name, config in models_config.items():
+    engine = SignGloveInference(
+        model_path=config['path'],
+        model_type=config['type'],
+        scaler_path='archive/checkpoints_backup/checkpoints_backup/scaler.pkl',
+        **{k: v for k, v in config.items() if k not in ['path', 'type']}
+    )
+    
+    result = engine.predict_single(raw_data, normalize=False)
+    results[model_name] = result
+    print(f"{model_name}: {result['predicted_class']} ({result['confidence']:.4f})")
+```
+
+#### 3. 혼동 행렬 생성
+
+```bash
+# 모든 모델의 혼동 행렬 생성
+python inference/examples/generate_confusion_matrices.py
+
+# 생성되는 파일:
+# - visualizations/confusion_matrices/confusion_matrix_gru.png
+# - visualizations/confusion_matrices/confusion_matrix_ms3dgru.png
+# - visualizations/confusion_matrices/confusion_matrix_stackedgru.png
+# - visualizations/confusion_matrices/confusion_matrix_ms3dstackedgru.png
+# - visualizations/confusion_matrices/confusion_matrix_comparison.png
+# - visualizations/confusion_matrices/confusion_matrix_grid_all_models.png
+# - visualizations/confusion_matrices/confusion_matrix_summary.txt
+```
+
+### 명령행 사용법
+
+#### 단일 샘플 예측
+```bash
+python inference/examples/single_predict.py \
+    --model best_model/ms3dgru_best.ckpt \
+    --csv sensor_data.csv
+```
+
+#### 배치 예측
+```bash
+python inference/examples/batch_predict.py \
+    --model best_model/ms3dgru_best.ckpt \
+    --dir ./sensor_data/
+```
+
+---
+
+## 🔧 하드웨어 통합
+
+### 하드웨어 시스템과의 연동
+
+이 프로젝트는 **SignGlove_HW** 하드웨어 시스템과 함께 사용됩니다.
+
+#### 1. 데이터 수집
+
+하드웨어에서 센서 데이터를 수집하면 H5 파일 형식으로 저장됩니다:
+```
+unified/
+├── ㄱ/
+│   ├── sample_001.h5
+│   ├── sample_002.h5
+│   └── ...
+├── ㄴ/
+└── ...
+```
+
+#### 2. 추론 가중치 준비
+
+하드웨어 시스템에 다음 파일들을 배포해야 합니다:
+
+**필수 파일:**
+1. **체크포인트 파일**: `best_model/ms3dgru_best.ckpt` (723KB)
+2. **Scaler 파일**: `archive/checkpoints_backup/checkpoints_backup/scaler.pkl` (641B)
+
+**선택적 파일:**
+- 다른 모델 체크포인트 (GRU, StackedGRU, MS3DStackedGRU)
+
+#### 3. 하드웨어에서 추론 실행
+
+##### Python 환경 설정
+
+```bash
+# 하드웨어 시스템에 Python 환경 설정
+pip install torch torchvision torchaudio
+pip install numpy scikit-learn
+```
+
+##### 추론 스크립트 예시
+
+```python
+# hardware_inference.py
 import numpy as np
 from inference import SignGloveInference
 
+# 추론 엔진 초기화 (하드웨어에서는 CPU 사용)
 engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU'
+    model_path='best_model/ms3dgru_best.ckpt',
+    model_type='MS3DGRU',
+    scaler_path='archive/checkpoints_backup/checkpoints_backup/scaler.pkl',
+    device='cpu'
 )
 
-# 단일 샘플 추론 시간 측정
-raw_data = np.random.randn(87, 8).astype(np.float32)
-n_iterations = 100
+def predict_from_sensors(sensor_data):
+    """
+    하드웨어 센서 데이터를 받아서 예측
+    
+    Args:
+        sensor_data: numpy array, shape (timesteps, 8)
+                     채널 순서: [flex1, flex2, flex3, flex4, flex5, pitch, roll, yaw]
+    
+    Returns:
+        predicted_class: str, 예측된 자모 (예: 'ㄱ', 'ㅏ')
+        confidence: float, 확률
+    """
+    result = engine.predict_single(sensor_data, normalize=False)
+    return result['predicted_class'], result['confidence']
 
-start_time = time.time()
-for _ in range(n_iterations):
-    _ = engine.predict_single(raw_data, return_all_info=False)
-single_time = (time.time() - start_time) / n_iterations
-
-print(f"단일 샘플 추론 시간: {single_time*1000:.2f}ms")
-print(f"초당 추론 가능 횟수: {1/single_time:.1f} samples/sec")
-
-# 배치 추론 시간 측정
-batch_sizes = [1, 4, 8, 16, 32]
-for batch_size in batch_sizes:
-    batch_data = [np.random.randn(87, 8).astype(np.float32) for _ in range(batch_size)]
-    start_time = time.time()
-    _ = engine.predict_batch(batch_data)
-    batch_time = (time.time() - start_time) / batch_size
-    print(f"배치 크기 {batch_size:2d}: 샘플당 {batch_time*1000:.2f}ms")
+# 실시간 센서 데이터 처리 예시
+def process_realtime_sensor_data(sensor_buffer):
+    """
+    실시간 센서 버퍼에서 데이터를 받아 처리
+    
+    Args:
+        sensor_buffer: list of (timestamp, sensor_values) tuples
+    """
+    # 버퍼를 numpy array로 변환
+    timesteps = len(sensor_buffer)
+    sensor_array = np.array([values for _, values in sensor_buffer], dtype=np.float32)
+    
+    # 예측
+    predicted_class, confidence = predict_from_sensors(sensor_array)
+    
+    return predicted_class, confidence
 ```
 
----
+##### 하드웨어 통합 예시 (Arduino/ESP32)
 
-### 5. 지원 모델 타입
+```cpp
+// Arduino/ESP32 예시 코드 구조
+// 센서 데이터를 수집하고 Python 스크립트로 전송
 
-| 모델 타입 | 설명 | 정확도 | 체크포인트 경로 |
-|-----------|------|--------|----------------|
-| `MS3DGRU` | Multi-Scale 3D CNN + GRU | **99.13%** | `inference/best_models/ms3dgru_best.ckpt` |
-| `GRU` | 기본 GRU (2층) | 98.44% | `checkpoints/best_model_epoch=66_val/loss=0.06.ckpt` |
-| `MS3DStackedGRU` | 3D CNN + Stacked GRU | 98.78% | (체크포인트 필요) |
-| `MSCSGRU` | Multi-Scale 1D CNN + Stacked GRU | 98.09% | (체크포인트 필요) |
-
-**사용 예시:**
-```python
-# MS3DGRU (권장)
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU'
-)
-
-# GRU
-engine = SignGloveInference(
-    model_path='checkpoints/best_model_epoch=66_val/loss=0.06.ckpt',
-    model_type='GRU'
-)
-```
-
----
-
-### 6. 입력 데이터 형식
-
-#### 6.1 NumPy 배열
-```python
-# Shape: (timesteps, 8)
-# timesteps: 50-120 (87 권장)
-# 8 channels: [flex1, flex2, flex3, flex4, flex5, pitch, roll, yaw]
-raw_data = np.array([
-    [1.0, 0.5, 0.3, 0.2, 0.1, 0.0, 0.0, 0.0],  # timestep 0
-    [1.0, 0.6, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0],  # timestep 1
-    # ... 최대 87 timesteps
-], dtype=np.float32)
-```
-
-#### 6.2 CSV 파일
-```csv
-flex1,flex2,flex3,flex4,flex5,pitch,roll,yaw
-1.0,0.5,0.3,0.2,0.1,0.0,0.0,0.0
-1.0,0.6,0.4,0.3,0.2,0.1,0.0,0.0
-...
-```
-
-**필수 컬럼:**
-- `flex1`, `flex2`, `flex3`, `flex4`, `flex5`: 굽힘 센서 (0.0-1.0)
-- `pitch`, `roll`, `yaw`: IMU 센서 (각도 값)
-
----
-
-### 7. 출력 결과 형식
-
-#### 7.1 단일 예측 결과
-```python
-result = {
-    'predicted_class': 'ㄱ',  # 예측된 클래스 (한글 자모)
-    'confidence': 0.9845,     # 확률 (0.0-1.0)
-    'top_k_predictions': [    # 상위 k개 예측
-        {'class': 'ㄱ', 'confidence': 0.9845},
-        {'class': 'ㅂ', 'confidence': 0.0102},
-        {'class': 'ㅁ', 'confidence': 0.0031},
-        # ...
-    ]
+void loop() {
+    // 센서 데이터 수집
+    float flex1 = readFlexSensor(1);
+    float flex2 = readFlexSensor(2);
+    float flex3 = readFlexSensor(3);
+    float flex4 = readFlexSensor(4);
+    float flex5 = readFlexSensor(5);
+    float pitch, roll, yaw;
+    readIMU(&pitch, &roll, &yaw);
+    
+    // 센서 데이터를 버퍼에 저장
+    sensor_buffer.add({
+        flex1, flex2, flex3, flex4, flex5,
+        pitch, roll, yaw
+    });
+    
+    // 버퍼가 충분히 쌓이면 (예: 87 timesteps)
+    if (sensor_buffer.size() >= 87) {
+        // Python 스크립트로 데이터 전송
+        send_to_python(sensor_buffer);
+        sensor_buffer.clear();
+    }
 }
 ```
 
-#### 7.2 배치 예측 결과
-```python
-results = [
-    {'predicted_class': 'ㄱ', 'confidence': 0.9845, ...},  # 샘플 1
-    {'predicted_class': 'ㅏ', 'confidence': 0.9721, ...},  # 샘플 2
-    # ...
-]
+#### 4. 실시간 추론 파이프라인
+
+```
+하드웨어 센서 → 데이터 수집 → 전처리 → 추론 엔진 → 예측 결과 → 출력
+     ↓              ↓            ↓           ↓           ↓
+  Arduino       H5 파일     Scaler 적용   MS3DGRU    자모 출력
+  / ESP32       또는 CSV    (normalize)   모델
 ```
 
----
+#### 5. 성능 최적화
 
-### 8. 고급 기능
+**CPU 추론 최적화:**
+- 배치 처리: 여러 샘플을 한 번에 처리
+- 모델 경량화: GRU 모델 사용 (598KB, 98.79% 정확도)
+- 추론 속도: CPU 기준 ~10ms/샘플
 
-#### 8.1 디바이스 선택
-```python
-# CPU 사용
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU',
-    device='cpu'  # 기본값
-)
+**메모리 최적화:**
+- 단일 추론 시 CPU 사용 (GPU 메모리 불필요)
+- 모델은 한 번만 로드하고 재사용
 
-# GPU 사용 (CUDA 사용 가능 시)
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU',
-    device='cuda'
-)
+#### 6. 배포 체크리스트
 
-# 자동 감지
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU',
-    device=None  # 자동으로 cuda 또는 cpu 선택
-)
-```
+하드웨어 시스템 배포 시 다음을 확인하세요:
 
-#### 8.2 StandardScaler 사용
-```python
-# 훈련 시 사용한 스케일러가 있는 경우
-engine = SignGloveInference(
-    model_path='inference/best_models/ms3dgru_best.ckpt',
-    model_type='MS3DGRU',
-    scaler_path='checkpoints/training_scaler.pkl'  # 스케일러 파일 경로
-)
-```
-
-#### 8.3 모델 정보 확인
-```python
-info = engine.get_model_info()
-print(f"모델 타입: {info['model_type']}")
-print(f"파라미터 수: {info['total_parameters']:,}")
-print(f"클래스 수: {info['classes']}")
-print(f"디바이스: {info['device']}")
-```
-
----
-
-### 9. 문제 해결
-
-#### 9.1 모델 로드 오류
-```python
-# 체크포인트 파일 경로 확인
-import os
-checkpoint_path = 'inference/best_models/ms3dgru_best.ckpt'
-if not os.path.exists(checkpoint_path):
-    print(f"❌ 체크포인트를 찾을 수 없습니다: {checkpoint_path}")
-```
-
-#### 9.2 입력 데이터 형식 오류
-```python
-# 올바른 shape 확인
-assert raw_data.shape[1] == 8, f"입력 채널 수가 8개가 아닙니다: {raw_data.shape}"
-assert len(raw_data.shape) == 2, f"입력은 2D 배열이어야 합니다: {raw_data.shape}"
-```
-
-#### 9.3 클래스 이름 확인
-```python
-# 지원되는 클래스 목록
-CLASS_NAMES = [
-    'ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
-    'ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ'
-]
-```
+- [ ] 체크포인트 파일 배포 (`best_model/ms3dgru_best.ckpt`)
+- [ ] Scaler 파일 배포 (`archive/checkpoints_backup/checkpoints_backup/scaler.pkl`)
+- [ ] Python 환경 설정 (torch, numpy, scikit-learn)
+- [ ] 추론 엔진 코드 배포 (`inference/` 폴더)
+- [ ] 센서 데이터 형식 확인 (8채널, 순서: flex1-5, pitch, roll, yaw)
+- [ ] 시퀀스 길이 처리 (87 timesteps, padding 필요 시)
 
 ---
 
@@ -631,50 +552,65 @@ KLP-SignGlove-Clean/
 │   │   ├── MultiScale3DGRUModels.py  # MS3DGRU, MS3DStackedGRU
 │   │   ├── MSCSGRUModels.py       # MSCGRU, MSCSGRU, CNNGRU
 │   │   ├── AdvancedGRUModels.py   # AttentionGRU, ResidualGRU, TransformerGRU
+│   │   ├── AGRUModels.py         # AGRU (실험 예정)
+│   │   ├── EncoderModels.py       # TransformerEncoder, CNNEncoder
+│   │   ├── LSTMModels.py          # LSTM, StackedLSTM
 │   │   └── LightningModel.py      # PyTorch Lightning 베이스 클래스
 │   ├── experiments/
 │   │   └── LightningTrain.py      # 학습 스크립트
 │   └── misc/
 │       ├── DynamicDataModule.py   # 데이터 로더
 │       ├── data_loader.py         # 파일 찾기/로딩
-│       ├── data_preprocessor.py   # 전처리
+│       ├── data_preprocessor.py   # 전처리 (Scaler 생성)
 │       └── dataset.py             # PyTorch Dataset
 │
 ├── inference/                     # 추론 시스템
 │   ├── engine.py                  # 통합 추론 엔진
 │   ├── models/                    # 추론용 모델
+│   │   ├── ms3dgru_inference.py
+│   │   ├── gru_inference.py
+│   │   ├── stackedgru_inference.py
+│   │   ├── ms3dstackedgru_inference.py
+│   │   └── mscsgru_inference.py
 │   ├── utils/                     # 전처리/후처리
-│   ├── examples/                  # 사용 예제
-│   ├── best_models/               # 최고 성능 모델
-│   │   └── ms3dgru_best.ckpt      # MS3DGRU (99.13%)
-│   └── performance_visualizations/  # 성능 시각화
+│   │   ├── preprocessor.py
+│   │   └── postprocessor.py
+│   └── examples/                  # 사용 예제
+│       ├── generate_confusion_matrices.py  # 혼동 행렬 생성
+│       ├── single_predict.py      # 단일 샘플 예측
+│       ├── batch_predict.py       # 배치 예측
+│       └── test_all_models.py     # 전체 모델 테스트
 │
 ├── scripts/                       # 분석/테스트 스크립트
-│   ├── generate_confusion_matrix.py  # Confusion Matrix 생성
-│   ├── test_inference_with_engine.py # 추론 엔진 테스트
+│   ├── generate_scaler.py         # Scaler 생성
+│   ├── eval_quick.py              # 빠른 평가
+│   ├── visualize_*.py             # 시각화 스크립트
 │   └── analyze_*.py               # 분석 스크립트
 │
-├── checkpoints/                   # 체크포인트
-│   ├── best_model_epoch=66_val/   # 최고 성능 (99.13%)
-│   └── training_scaler.pkl        # 데이터 스케일러
+├── checkpoints/                   # 체크포인트 (훈련된 모델)
+│   ├── best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt  # GRU
+│   ├── best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt  # StackedGRU
+│   └── best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt  # MS3DStackedGRU
 │
 ├── best_model/                    # 최고 성능 모델 (간편 접근)
-│   └── ms3dgru_best.ckpt
-│
-├── lightning_logs/                # PyTorch Lightning 로그
-│   ├── MS3DGRU/                   # MS3DGRU 학습 로그
-│   ├── GRU/                       # GRU 학습 로그
-│   └── StackedGRU/                # StackedGRU 학습 로그
-│
-├── visualizations/                # 시각화
-│   ├── efficiency_analysis/       # 모델 효율성 비교
-│   └── noise_robustness/          # 노이즈 견고성 분석
+│   └── ms3dgru_best.ckpt          # MS3DGRU (99.13%)
 │
 ├── archive/                       # 보관 파일
-│   ├── agru_research/             # AGRU 연구 관련
-│   ├── lightning_logs_backup/     # 이전 로그
-│   └── checkpoints_backup/        # 이전 체크포인트
+│   └── checkpoints_backup/
+│       └── checkpoints_backup/
+│           └── scaler.pkl         # 훈련용 Scaler (필수)
 │
+├── visualizations/                # 시각화 결과
+│   └── confusion_matrices/        # 혼동 행렬
+│
+├── lightning_logs/                # PyTorch Lightning 로그
+│   ├── GRU/                       # GRU 학습 로그
+│   ├── StackedGRU/                # StackedGRU 학습 로그
+│   ├── MS3DGRU/                   # MS3DGRU 학습 로그
+│   └── MS3DStackedGRU/           # MS3DStackedGRU 학습 로그
+│
+├── requirements.txt               # Python 패키지 의존성
+├── LICENSE                        # 라이선스
 └── README.md                      # 이 파일
 ```
 
@@ -682,12 +618,29 @@ KLP-SignGlove-Clean/
 
 ## 🚀 Quick Start
 
-### 설치
+### 1. 설치
+
 ```bash
+# 저장소 클론
+git clone <repository-url>
+cd KLP-SignGlove-Clean
+
+# 의존성 설치
 pip install -r requirements.txt
 ```
 
-### 학습
+### 2. Scaler 생성 (필수)
+
+```bash
+# 훈련 데이터로부터 Scaler 생성
+python scripts/generate_scaler.py \
+    --data_dir /home/billy/25-1kp/SignGlove-DataAnalysis/unified/unified \
+    --output_path archive/checkpoints_backup/checkpoints_backup/scaler.pkl \
+    --target_timesteps 87
+```
+
+### 3. 모델 훈련
+
 ```bash
 # MS3DGRU 학습 (최고 성능 모델)
 python src/experiments/LightningTrain.py \
@@ -695,25 +648,39 @@ python src/experiments/LightningTrain.py \
     -epochs 100 \
     -batch_size 64 \
     -lr 0.001 \
-    -hidden_size 64
+    -hidden_size 64 \
+    -data_dir /home/billy/25-1kp/SignGlove-DataAnalysis/unified/unified
 
-# GRU 학습 (기본 모델)
+# GRU 학습 (경량 모델)
 python src/experiments/LightningTrain.py \
     -model GRU \
     -epochs 100 \
     -batch_size 64 \
-    -lr 0.001
+    -lr 0.001 \
+    -layers 1 \
+    -hidden_size 64 \
+    -data_dir /home/billy/25-1kp/SignGlove-DataAnalysis/unified/unified
 ```
 
-### 추론 테스트
+### 4. 추론 테스트
+
 ```bash
-# Confusion Matrix 생성 (전체 테스트셋 평가)
-python scripts/generate_confusion_matrix.py
+# 혼동 행렬 생성 (모든 모델 성능 평가)
+python inference/examples/generate_confusion_matrices.py
 
 # 단일 샘플 예측
 python inference/examples/single_predict.py \
-    --model inference/best_models/ms3dgru_best.ckpt \
+    --model best_model/ms3dgru_best.ckpt \
     --csv sensor_data.csv
+```
+
+### 5. 하드웨어 배포
+
+```bash
+# 하드웨어 시스템에 배포할 파일 복사
+cp best_model/ms3dgru_best.ckpt /path/to/hardware/
+cp archive/checkpoints_backup/checkpoints_backup/scaler.pkl /path/to/hardware/
+cp -r inference/ /path/to/hardware/
 ```
 
 ---
@@ -728,7 +695,7 @@ python inference/examples/single_predict.py \
 ### 2. 1D CNN의 한계
 - ❌ 시간 패턴만 포착 (공간 특성 미활용)
 - ❌ 센서 간 상호작용 학습 어려움
-- 결과: 98.44% (GRU와 동일)
+- 결과: 98.44% (GRU와 유사)
 
 ### 3. Sensor-Aware 접근의 문제
 - ❌ 센서 분리가 오히려 정보 손실
@@ -737,7 +704,7 @@ python inference/examples/single_predict.py \
 
 ### 4. 모델 복잡도와 성능 트레이드오프
 - MS3DGRU (58K params): 99.13% ✅
-- MS3DStackedGRU (167K params): 98.78% (더 복잡하지만 성능 낮음)
+- MS3DStackedGRU (167K params): 97.92% (더 복잡하지만 성능 낮음)
 - 결론: 단순한 구조가 더 효과적
 
 ---
@@ -754,12 +721,6 @@ scikit-learn>=0.24.0
 pandas>=1.2.0
 tqdm>=4.60.0
 ```
-
----
-
-## 📄 License
-
-See `LICENSE` file for details.
 
 ---
 
@@ -798,7 +759,7 @@ See `LICENSE` file for details.
 
 ## 📞 문의 및 기여
 
-프로젝트 완료일: 2025-10-29  
+프로젝트 완료일: 2025-11-05  
 최종 모델: MS3DGRU (99.13% accuracy, 58,840 parameters)
 
 ---

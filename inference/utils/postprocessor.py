@@ -195,8 +195,8 @@ class InferencePostprocessor:
         
         if 'top_k_predictions' in prediction:
             print(f"\n📋 상위 {len(prediction['top_k_predictions'])}개 예측:")
-            for i, pred in enumerate(prediction['top_k_predictions'], 1):
-                print(f"  {i}. {pred['class']}: {pred['confidence']:.4f}")
+        for i, pred in enumerate(prediction['top_k_predictions'], 1):
+            print(f"  {i}. {pred['class']}: {pred['confidence']:.4f}")
         
         if 'input_shape' in prediction:
             print(f"\n📏 입력 shape: {prediction['input_shape']}")

@@ -19,6 +19,10 @@ from src.models.GRUModels import GRU, StackedGRU
 from src.models.LSTMModels import LSTM, StackedLSTM
 from src.models.EncoderModels import TransformerEncoder, CNNEncoder, HybridEncoder
 from src.models.MSCSGRUModels import MSCSGRU, MSCGRU, CNNGRU, CNNStackedGRU
+# Removed unavailable imports (files deleted during cleanup)
+# from src.models.SpatialMSGRUModels import MS2DGRU
+from src.models.AGRUModels import AGRUModel
+# from src.models.SensorAwareModels import SensorAwareGRU, SensorAwareCNNGRU, SensorAwareMultiScaleGRU
 from src.models.AdvancedGRUModels import AttentionGRU, ResidualGRU, TransformerGRU
 from src.models.MultiScale3DGRUModels import MS3DGRU, MS3DStackedGRU, SensorAware3DGRU
 
@@ -30,6 +34,8 @@ parser.add_argument("-description", dest="description", type=str, required=False
 parser.add_argument("-test", dest="test", action="store_true", required=False)
 
 # Data/optim
+parser.add_argument("-data_dir", dest="data_dir", type=str, required=False,
+                    help="Dataset root directory (expects 24 class folders)")
 parser.add_argument("-time_steps", dest="time_steps", type=int, required=False)
 parser.add_argument("-lr", dest="lr", type=float, required=False)
 parser.add_argument("-batch_size", dest="batch_size", type=int, required=False)
@@ -53,6 +59,7 @@ parser.set_defaults(
     epochs=100,
     time_steps=87,
     lr=1e-3,
+    data_dir="/home/billy/25-1kp/SignGlove_HW/datasets/unified",
     model="GRU",
     model_type="RNN",
     layers=2,
@@ -93,6 +100,14 @@ def get_model(model_name: str):
         "MSCGRU": (MSCGRU, params_common),
         "CNNGRU": (CNNGRU, params_common),
         "CNNStackedGRU": (CNNStackedGRU, params_common),
+        # Spatial MS-GRU models (removed: MS2DGRU)
+        # "MS2DGRU": (MS2DGRU, params_common),
+        # A-GRU (Amygdala-Boosted GRU) - still available if needed
+        "AGRU": (AGRUModel, params_common | {"layers": args.layers, "gamma": 1.0}),
+        # Sensor-Aware Models (removed: SensorAware*)
+        # "SensorAwareGRU": (SensorAwareGRU, params_common),
+        # "SensorAwareCNNGRU": (SensorAwareCNNGRU, params_common),
+        # "SensorAwareMultiScaleGRU": (SensorAwareMultiScaleGRU, params_common),
         # Advanced GRU Models (GRU를 이기기 위한 고급 모델들)
         "AttentionGRU": (AttentionGRU, params_common | {"layers": args.layers, "attention_heads": 4}),
         "ResidualGRU": (ResidualGRU, params_common | {"layers": args.layers}),
@@ -112,6 +127,7 @@ def get_model(model_name: str):
 def main():
     # DataModule
     dataset_params = {
+        "data_dir": args.data_dir,
         "time_steps": args.time_steps,
         "batch_size": args.batch_size,
         "kfold": 0,
@@ -138,7 +154,7 @@ def main():
     checkpoint_callback = ModelCheckpoint(
         monitor='val/loss',
         dirpath='./checkpoints/',
-        filename='{args.model}_best_{epoch:02d}_{val/loss:.2f}',
+        filename='best_model_epoch={epoch}_val/loss={val/loss:.2f}',
         save_top_k=1,
         mode='min'
     )

@@ -28,14 +28,14 @@ def predict_from_csv(csv_path: str, model_path: str):
     
     # 1. 추론 엔진 초기화
     print("🚀 추론 엔진 초기화 중...")
-    engine = SignGloveInference(
-        model_path=model_path,
+        engine = SignGloveInference(
+            model_path=model_path,
         model_type='MS3DGRU',
         device='cpu',  # 또는 'cuda'
-        input_size=8,
-        hidden_size=64,
-        classes=24,
-        cnn_filters=32,
+            input_size=8,
+            hidden_size=64,
+            classes=24,
+            cnn_filters=32,
         dropout=0.1
     )
     

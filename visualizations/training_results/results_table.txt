@@ -1,0 +1,18 @@
+============================================================
+Training Results Summary
+============================================================
+
+Model                Dataset         Accuracy (%)   
+------------------------------------------------------------
+MS3DStackedGRU       Unified         95.66          
+MS3DStackedGRU       Yubeen          97.94          
+MS3DStackedGRU       Jaeyeon         99.31          
+StackedGRU           Unified         92.54          
+StackedGRU           Yubeen          98.29          
+StackedGRU           Jaeyeon         95.14          
+MS3DGRU              Unified         92.53          
+MS3DGRU              Yubeen          98.61          
+MS3DGRU              Jaeyeon         97.92          
+GRU                  Unified         98.96          
+GRU                  Yubeen          98.29          
+GRU                  Jaeyeon         97.22          

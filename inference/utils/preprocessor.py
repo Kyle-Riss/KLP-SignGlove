@@ -143,11 +143,11 @@ class InferencePreprocessor:
             
             # 패딩/트렁케이션
             data = self.pad_or_truncate(data)
-            
+        
             # 정규화
             if normalize:
                 data = self.normalize(data)
-            
+        
             processed_list.append(data)
         
         # 배치 텐서로 변환

@@ -1,5 +1,5 @@
 """
-GRU 추론 전용 모델
+StackedGRU 추론 전용 모델
 훈련 코드와 분리된 경량 추론 모델
 """
 
@@ -8,9 +8,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class GRUInference(nn.Module):
+class StackedGRUInference(nn.Module):
     """
-    GRU 추론 전용 모델
+    StackedGRU 추론 전용 모델
     
     Args:
         input_size: 입력 특징 수 (default: 8)
@@ -35,16 +35,14 @@ class GRUInference(nn.Module):
         self.classes = classes
         self.layers = layers
         
-        # 훈련 모델 구조와 일치: Linear + GRU
-        # 훈련 모델: RNN.0 (Linear: 8->128) + RNN.1 (GRU: 128->64)
-        self.RNN = nn.Sequential(
-            nn.Linear(input_size, 2 * hidden_size),  # Linear: 8 -> 128
-            nn.GRU(
-                2 * hidden_size,  # 128
-                hidden_size,  # 64
-                num_layers=layers, 
-                batch_first=True
-            )
+        # 훈련 모델 구조와 일치: 직접 Stacked GRU (Linear layer 없음)
+        # 훈련 모델: RNN = nn.GRU(input_size -> hidden_size, layers=2)
+        self.RNN = nn.GRU(
+            input_size,
+            hidden_size,
+            num_layers=layers, 
+            batch_first=True,
+            dropout=dropout if layers > 1 else 0
         )
         
         # 출력 레이어
@@ -65,16 +63,9 @@ class GRUInference(nn.Module):
         Returns:
             logits: 출력 로짓 (batch, classes)
         """
-        # RNN은 Sequential: Linear + GRU
-        # Linear 레이어 적용
-        linear_layer = self.RNN[0]
-        gru_layer = self.RNN[1]
-        
-        # Linear: (batch, timesteps, features) -> (batch, timesteps, 2*hidden_size)
-        x_linear = linear_layer(x)
-        
-        # GRU
-        outputs, hidden = gru_layer(x_linear)
+        # RNN은 직접 GRU (Linear layer 없음)
+        # Stacked GRU
+        outputs, hidden = self.RNN(x)
         
         # 마지막 타임스텝 사용
         final_output = outputs[:, -1, :]
@@ -137,9 +128,9 @@ class GRUInference(nn.Module):
     def get_model_info(self):
         """모델 정보 반환"""
         return {
-            'model_type': 'GRU',
-            'architecture': 'Basic GRU',
-            'performance': '98.44% accuracy',
+            'model_type': 'StackedGRU',
+            'architecture': 'Stacked GRU',
+            'performance': '95.43% accuracy',
             'input_size': self.input_size,
             'hidden_size': self.hidden_size,
             'classes': self.classes,

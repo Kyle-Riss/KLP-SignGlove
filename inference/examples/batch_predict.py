@@ -29,14 +29,14 @@ def predict_batch_from_csvs(csv_paths: List[str], model_path: str):
     
     # 1. 추론 엔진 초기화
     print("🚀 추론 엔진 초기화 중...")
-    engine = SignGloveInference(
-        model_path=model_path,
+        engine = SignGloveInference(
+            model_path=model_path,
         model_type='MS3DGRU',
         device='cpu',  # 또는 'cuda'
-        input_size=8,
-        hidden_size=64,
-        classes=24,
-        cnn_filters=32,
+            input_size=8,
+            hidden_size=64,
+            classes=24,
+            cnn_filters=32,
         dropout=0.1
     )
     
@@ -82,7 +82,7 @@ def predict_batch_from_csvs(csv_paths: List[str], model_path: str):
         print(f"  📋 상위 3개:")
         for j, pred in enumerate(result['top_k_predictions'][:3], 1):
             print(f"      {j}. {pred['class']}: {pred['confidence']:.4f}")
-    
+
     print("\n" + "="*60)
     
     return results
@@ -212,6 +212,6 @@ if __name__ == "__main__":
     print("\n3. 랜덤 데이터로 테스트 (배치 크기 10):")
     print("   python batch_predict.py --model best_model.ckpt --test 10")
     print("\n" + "="*60 + "\n")
-    
+
     # 실제 실행
     # main()  # 주석 해제하여 사용

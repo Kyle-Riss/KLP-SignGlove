@@ -1,0 +1,62 @@
+[
+  {
+    "Model": "MS3DStackedGRU",
+    "Dataset": "Unified",
+    "Accuracy (%)": "95.66"
+  },
+  {
+    "Model": "MS3DStackedGRU",
+    "Dataset": "Yubeen",
+    "Accuracy (%)": "97.94"
+  },
+  {
+    "Model": "MS3DStackedGRU",
+    "Dataset": "Jaeyeon",
+    "Accuracy (%)": "99.31"
+  },
+  {
+    "Model": "StackedGRU",
+    "Dataset": "Unified",
+    "Accuracy (%)": "92.54"
+  },
+  {
+    "Model": "StackedGRU",
+    "Dataset": "Yubeen",
+    "Accuracy (%)": "98.29"
+  },
+  {
+    "Model": "StackedGRU",
+    "Dataset": "Jaeyeon",
+    "Accuracy (%)": "95.14"
+  },
+  {
+    "Model": "MS3DGRU",
+    "Dataset": "Unified",
+    "Accuracy (%)": "92.53"
+  },
+  {
+    "Model": "MS3DGRU",
+    "Dataset": "Yubeen",
+    "Accuracy (%)": "98.61"
+  },
+  {
+    "Model": "MS3DGRU",
+    "Dataset": "Jaeyeon",
+    "Accuracy (%)": "97.92"
+  },
+  {
+    "Model": "GRU",
+    "Dataset": "Unified",
+    "Accuracy (%)": "98.96"
+  },
+  {
+    "Model": "GRU",
+    "Dataset": "Yubeen",
+    "Accuracy (%)": "98.29"
+  },
+  {
+    "Model": "GRU",
+    "Dataset": "Jaeyeon",
+    "Accuracy (%)": "97.22"
+  }
+]
