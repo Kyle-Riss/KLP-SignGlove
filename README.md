@@ -259,15 +259,45 @@ Output Layers → 24 classes
 
 ## 🚀 추론 시스템
 
+### 추론 가중치 선택 가이드
+
+**어떤 가중치를 사용해야 할까요?**
+
+#### 🥇 권장: MS3DGRU (최고 성능)
+- **체크포인트**: `best_model/ms3dgru_best.ckpt`
+- **정확도**: 99.13%
+- **모델 크기**: 723KB
+- **사용 시나리오**:
+  - ✅ 최고 정확도가 필요한 경우
+  - ✅ 일반적인 추론 작업
+  - ✅ 프로덕션 환경 배포
+
+#### 🥈 대안: GRU (경량 모델)
+- **체크포인트**: `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt`
+- **정확도**: 98.79%
+- **모델 크기**: 598KB
+- **사용 시나리오**:
+  - ✅ 메모리가 제한적인 환경
+  - ✅ 빠른 추론 속도가 필요한 경우
+  - ✅ 모바일/임베디드 시스템
+  - ✅ 정확도 0.34% 차이를 감수할 수 있는 경우
+
+#### 🥉 기타: MS3DStackedGRU, StackedGRU
+- **MS3DStackedGRU**: `checkpoints/best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt` (97.92%, 2.0MB)
+- **StackedGRU**: `checkpoints/best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt` (93.93%, 609KB)
+- **사용 시나리오**:
+  - ⚠️ 특별한 요구사항이 있는 경우
+  - ⚠️ 성능 비교 실험
+
 ### 추론 가중치 파일 위치
 
-| 모델 | 체크포인트 경로 | 크기 | 상태 |
-|------|----------------|------|------|
-| **MS3DGRU** | `best_model/ms3dgru_best.ckpt` | 723KB | ✅ 사용 중 |
-| **GRU** | `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt` | 598KB | ✅ 사용 중 |
-| **MS3DStackedGRU** | `checkpoints/best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt` | 2.0MB | ✅ 사용 중 |
-| **StackedGRU** | `checkpoints/best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt` | 609KB | ✅ 사용 중 |
-| **Scaler** | `archive/checkpoints_backup/checkpoints_backup/scaler.pkl` | 641B | ✅ 필수 |
+| 모델 | 체크포인트 경로 | 크기 | 정확도 | 권장 여부 |
+|------|----------------|------|--------|-----------|
+| **MS3DGRU** | `best_model/ms3dgru_best.ckpt` | 723KB | **99.13%** | ✅ **권장** |
+| **GRU** | `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt` | 598KB | 98.79% | ✅ 경량 대안 |
+| **MS3DStackedGRU** | `checkpoints/best_model_epoch=epoch=82_val/loss=val/loss=0.05.ckpt` | 2.0MB | 97.92% | ⚠️ 선택적 |
+| **StackedGRU** | `checkpoints/best_model_epoch=epoch=68_val/loss=val/loss=0.19.ckpt` | 609KB | 93.93% | ⚠️ 선택적 |
+| **Scaler** | `archive/checkpoints_backup/checkpoints_backup/scaler.pkl` | 641B | - | ✅ **필수** |
 
 ### 추론 시스템 구조
 
@@ -414,11 +444,17 @@ unified/
 하드웨어 시스템에 다음 파일들을 배포해야 합니다:
 
 **필수 파일:**
-1. **체크포인트 파일**: `best_model/ms3dgru_best.ckpt` (723KB)
-2. **Scaler 파일**: `archive/checkpoints_backup/checkpoints_backup/scaler.pkl` (641B)
+1. **체크포인트 파일**: `best_model/ms3dgru_best.ckpt` (723KB) - **권장: MS3DGRU**
+   - 또는 경량 모델: `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt` (598KB) - **GRU**
+2. **Scaler 파일**: `archive/checkpoints_backup/checkpoints_backup/scaler.pkl` (641B) - **필수**
+
+**가중치 선택 기준:**
+- **최고 성능**: MS3DGRU (99.13%, 723KB) ✅ **권장**
+- **경량 모델**: GRU (98.79%, 598KB) - 메모리 제한 환경
+- **하드웨어 제약**: 메모리가 적으면 GRU, 충분하면 MS3DGRU
 
 **선택적 파일:**
-- 다른 모델 체크포인트 (GRU, StackedGRU, MS3DStackedGRU)
+- 다른 모델 체크포인트 (MS3DStackedGRU, StackedGRU) - 성능 비교 목적
 
 #### 3. 하드웨어에서 추론 실행
 
