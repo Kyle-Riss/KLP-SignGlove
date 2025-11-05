@@ -324,17 +324,35 @@ inference/
 
 #### 1. 기본 사용법
 
+**권장: MS3DGRU 모델 사용 (최고 성능, 99.13%)**
+
 ```python
 import numpy as np
 from inference import SignGloveInference
 
-# 추론 엔진 초기화
+# 추론 엔진 초기화 (MS3DGRU - 권장)
 engine = SignGloveInference(
-    model_path='best_model/ms3dgru_best.ckpt',
+    model_path='best_model/ms3dgru_best.ckpt',  # MS3DGRU 체크포인트 (99.13% 정확도)
     model_type='MS3DGRU',
-    scaler_path='archive/checkpoints_backup/checkpoints_backup/scaler.pkl',
+    scaler_path='archive/checkpoints_backup/checkpoints_backup/scaler.pkl',  # 필수
     device='cpu'  # 또는 'cuda'
 )
+```
+
+**경량 모델: GRU 사용 (메모리 제한 환경, 98.79%)**
+
+```python
+# GRU 모델 사용 (경량, 98.79% 정확도)
+engine = SignGloveInference(
+    model_path='checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt',
+    model_type='GRU',
+    hidden_size=64,
+    layers=1,
+    dropout=0.2,
+    scaler_path='archive/checkpoints_backup/checkpoints_backup/scaler.pkl',
+    device='cpu'
+)
+```
 
 # 센서 데이터 준비 (Shape: (timesteps, 8))
 # 채널 순서: [flex1, flex2, flex3, flex4, flex5, pitch, roll, yaw]
