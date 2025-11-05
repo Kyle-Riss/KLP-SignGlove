@@ -587,8 +587,13 @@ void loop() {
 
 하드웨어 시스템 배포 시 다음을 확인하세요:
 
-- [ ] 체크포인트 파일 배포 (`best_model/ms3dgru_best.ckpt`)
-- [ ] Scaler 파일 배포 (`archive/checkpoints_backup/checkpoints_backup/scaler.pkl`)
+**가중치 파일:**
+- [ ] 체크포인트 파일 배포
+  - 권장: `best_model/ms3dgru_best.ckpt` (MS3DGRU, 99.13%, 723KB) ✅
+  - 또는 경량: `checkpoints/best_model_epoch=epoch=92_val/loss=val/loss=0.04.ckpt` (GRU, 98.79%, 598KB)
+- [ ] Scaler 파일 배포 (`archive/checkpoints_backup/checkpoints_backup/scaler.pkl`) - **필수**
+
+**환경 설정:**
 - [ ] Python 환경 설정 (torch, numpy, scikit-learn)
 - [ ] 추론 엔진 코드 배포 (`inference/` 폴더)
 - [ ] 센서 데이터 형식 확인 (8채널, 순서: flex1-5, pitch, roll, yaw)
